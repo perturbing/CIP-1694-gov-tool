@@ -5,7 +5,7 @@ module Main where
 import Cardano.Api           (writeFileTextEnvelope, PlutusScriptV3)
 import Cardano.Api.Shelley   (File (..), PlutusScript (..), Script (..))
 import PlutusTx              (CompiledCode)
-import Script                (testScriptCode)
+import Script                (ccScriptCode)
 import qualified PlutusLedgerApi.V3 as PlutusV3
 
 writeScriptToFile :: FilePath -> PlutusScript PlutusScriptV3 -> IO ()
@@ -20,5 +20,5 @@ writeCodeToFile filePath = writeScriptToFile filePath . PlutusScriptSerialised .
 
 main :: IO ()
 main = do
-  writeCodeToFile "./assets/testScript.plutus" testScriptCode
+  writeCodeToFile "./assets/ccScript.plutus" ccScriptCode
   putStrLn "Done."
