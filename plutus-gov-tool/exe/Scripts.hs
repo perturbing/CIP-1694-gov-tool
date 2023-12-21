@@ -103,6 +103,16 @@ data CCScriptRedeemer = Witness | Resign X509 | Unlock
 makeIsDataIndexed ''CCScriptRedeemer [('Witness, 0), ('Resign, 1), ('Unlock, 2)]
 
 -- [Locking script]
+-- The locking script is parameterized by the datum and redeemer types as above.
+-- This script checks that for a given action in the redeemer (witness, resign, unlock) the
+-- appropriate checks are made.
+-- Witness: checks that the transaction input being spent also an ouput, while preserving
+-- the value and datum of this input (so no state transitions/movement of value). Also this
+-- action makes sure the transaction is signed by a majority of the hot certificates.
+-- Resign: checks that the X509 certificate is in the hot list, that the transaction 
+-- is signed by this certificate, and the certificate is removed from the hot list.
+-- Lastly, this action checks that the transaction does witness any CC certificates.
+-- Unlock: checks that the transaction is signed by a majority of the cold certificates.
 {-# INLINABLE lockingScript #-}
 lockingScript :: CCScriptDatum -> CCScriptRedeemer -> ScriptContext -> Bool
 lockingScript dtm red ctx = case scriptContextPurpose ctx of
