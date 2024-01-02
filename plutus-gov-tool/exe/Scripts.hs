@@ -51,27 +51,29 @@ import PlutusTx.Numeric
 
 -- [General notes on this file]
 -- This file contains two plutus scripts, the CC membership script and the locking script. 
--- The CC membership script is parameterized by the currency symbol of an NFT, and validates 
--- true if the NFT is in a transaction input. The locking script governs the unlocking of this NFT,
--- and therefore when a CC certificated can be witnessed via the CC membership script.
+-- The CC membership script is parameterized by the currency symbol of an NFT, and evaluates 
+-- true if the NFT is in an input of the transaction. 
+-- The locking script governs the unlocking of this NFT, and therefore when and how
+-- a CC certificated can be witnessed via the CC membership script.
 
 -- [CC membership script]
--- This script just checks that the hardcoded currency symbol of the NFT is in a transaction inputs.
+-- This script just checks that the hard-coded currency symbol of the NFT is 
+-- in an input of the transaction.
 {-# INLINABLE ccScript #-}
 ccScript :: CurrencySymbol -> () -> ScriptContext -> Bool
 ccScript symbol _ ctx = any (\value -> symbol `member` value) txInputsValues
     where
-        -- the list of transaction inputs being consumed in this transaction.
+        -- The list of transaction inputs being consumed in this transaction.
         txInputs = txInfoInputs . scriptContextTxInfo $ ctx
-        -- the list of value maps of the transaction inputs.
+        -- The list of value maps of the transaction inputs.
         txInputsValues = map (getValue . txOutValue . txInInfoResolved) txInputs
 
 ccScriptCode :: CompiledCode (CurrencySymbol -> () -> ScriptContext -> Bool)
 ccScriptCode = $$(compile [|| ccScript ||])
 
 -- X509 is a data type that represents a commitment to an X509 certificate.
--- It is parameterized by the hash of the public key that is in the certificate.
--- To make the link between onchain and offchain bidirection the hash 
+-- It is given by the hash of the public key that is in the certificate.
+-- To make the link between onchain and offchain two-way, the hash 
 -- of the certificate is also in this type.
 data X509 = X509 {
     pubKeyHash  :: PubKeyHash,
@@ -84,11 +86,11 @@ instance Eq X509 where
     (X509 pkh1 hash1) == (X509 pkh2 hash2) = pkh1 == pkh2 && hash1 == hash2
 
 -- CCScriptDatum is the datum type of the locking script.
--- It is parameterized by two lists of X509 certificates, the cold and hot certificates.
+-- It is given by two lists of X509 certificates, the cold and hot certificates.
 -- The cold certificates have full control over the script address, while the hot certificates
--- can witness the unlocked utxo to issue a CC certificate (without any state transitions).
+-- can witness the unlocked UTxO to issue a CC certificate (without any state transitions).
 -- The hot certificates can also resign their power by removing themselves from the list.
--- Both list need an majority of signatures to do anything.
+-- Both list need a majority of signatures to do anything.
 data CCScriptDatum = CCScriptDatum {
     coldX509s   :: [X509],
     hotX509s    :: [X509]
@@ -96,22 +98,31 @@ data CCScriptDatum = CCScriptDatum {
 makeIsDataIndexed ''CCScriptDatum [('CCScriptDatum, 0)]
 
 -- [Locking script actions]
+-- This is the redeemer type of the locking script.
 -- The witness action is used to witness a transaction when a hot CC certificate needs to be issued.
--- It checks that there is only one input being spend from this script address, and that the value
--- plus datum of this input is replicated as an output. It also checks that 
+-- The resign X509 action is used to resign a hot CC certificate.
+-- The unlock action is there for the cold certificates to unlock the UTxO for any reason. This
+-- could for example be to rotate the cold certificates, remove a compromised certificate, or
+-- unlock the NFT to be able to lock it elsewhere (e.g. to a new updated CC membership script).
 data CCScriptRedeemer = Witness | Resign X509 | Unlock
 makeIsDataIndexed ''CCScriptRedeemer [('Witness, 0), ('Resign, 1), ('Unlock, 2)]
 
 -- [Locking script]
 -- The locking script is parameterized by the datum and redeemer types as above.
--- This script checks that for a given action in the redeemer (witness, resign, unlock) the
--- appropriate checks are made.
--- Witness: checks that the transaction input being spent also an ouput, while preserving
--- the value and datum of this input (so no state transitions/movement of value). Also this
--- action makes sure the transaction is signed by a majority of the hot certificates.
--- Resign: checks that the X509 certificate is in the hot list, that the transaction 
--- is signed by this certificate, and the certificate is removed from the hot list.
--- Lastly, this action checks that the transaction does witness any CC certificates.
+-- This script checks that for a given action in the redeemer (witness, resign X509, unlock) the
+-- appropriate checks are made. These are as follows,
+--
+-- Witness: checks that the transaction input being spent is also an output, while preserving
+-- the value and datum of this input (so there is no state transitions/movement of value).
+-- Also, this action makes sure the transaction is signed by a majority of the hot certificates.
+-- Effectively, this action witnesses control of the UTxO to be able to issue a hot CC certificate.
+-- Note that this action does not check that a certificate is witnessed!
+--
+-- Resign X509: checks that the provided X509 certificate from the redeemer is in the hot list,
+-- that the transaction is signed by this X509 certificate, and the certificate is removed from the hot list.
+-- Lastly, this action also checks that the transaction does witness any CC certificates. To prevent 
+-- unauthorized satisfaction of the above CC membership script.
+--
 -- Unlock: checks that the transaction is signed by a majority of the cold certificates.
 {-# INLINABLE lockingScript #-}
 lockingScript :: CCScriptDatum -> CCScriptRedeemer -> ScriptContext -> Bool
@@ -122,13 +133,13 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
                 checkTxOutPreservation = case ownInput of
                     Just txOut  -> txOut `elem` txInfoOutputs txInfo
                     Nothing     -> False
-        Resign x509 -> memberX509 && txSignedX509 && removeX509 && notWitnessed
+        Resign x509 -> memberX509 && txSignedX509 && removedX509 && notWitnessed
             where
                 memberX509 = x509 `elem` hotX509s'
                 txSignedX509 = txSignedBy txInfo (pubKeyHash x509)
                 hotX509s' = hotX509s dtm
                 newDatum = CCScriptDatum (coldX509s dtm) (filter (/= x509) hotX509s')
-                removeX509 = case ownInput of
+                removedX509 = case ownInput of
                     Just txOut  -> let newTxOutput = txOut { txOutDatum = (OutputDatum . Datum . toBuiltinData) newDatum }
                                    in newTxOutput `elem` txInfoOutputs txInfo
                     Nothing     -> False
