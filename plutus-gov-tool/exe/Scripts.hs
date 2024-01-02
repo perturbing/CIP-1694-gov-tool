@@ -17,7 +17,13 @@ import PlutusTx.Prelude
       length,
       even,
       divide,
-      Ord (..), Eq (..), Maybe (..), maybe, (<$>), (/=) )
+      Ord (..),
+      Eq (..), 
+      Maybe (..), 
+      maybe, 
+      (<$>), 
+      (/=), 
+      modulo )
 import PlutusTx.List
     ( any,
       map,
@@ -37,7 +43,10 @@ import PlutusLedgerApi.V3
       TxOut (..),
       Value (..),
       PubKeyHash,
-      TxCert (..), ToData (..), Datum (..), OutputDatum (..))
+      TxCert (..), 
+      ToData (..), 
+      Datum (..), 
+      OutputDatum (..))
 import PlutusTx
     ( compile,
       CompiledCode,
@@ -150,7 +159,7 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
             ownInput = txInInfoResolved <$> findTxInByTxOutRef txOurRef txInfo
             checkMultiSig list = majority <= numberOfSignatures
                 where
-                    majority = divide (length list) 2 + 1
+                    majority = (\x -> divide x 2 + modulo x 2) $ length list
                     numberOfSignatures = length $ filter (txSignedBy txInfo . pubKeyHash) list
     _                 -> False
 
