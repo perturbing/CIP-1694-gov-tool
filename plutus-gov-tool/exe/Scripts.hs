@@ -82,7 +82,7 @@ ccScriptCode = $$(compile [|| ccScript ||])
 
 -- X509 is a data type that represents a commitment to an X509 certificate.
 -- It is given by the hash of the public key that is in the certificate.
--- To make the link between onchain and offchain two-way, the hash 
+-- To make the link between onchain and offchain two-way verifiable, the hash 
 -- of the certificate is also in this type.
 data X509 = X509 {
     pubKeyHash  :: PubKeyHash,
@@ -95,49 +95,49 @@ instance Eq X509 where
     (X509 pkh1 hash1) == (X509 pkh2 hash2) = pkh1 == pkh2 && hash1 == hash2
 
 -- CCScriptDatum is the datum type of the locking script.
--- It is given by two lists of X509 certificates, the cold and hot certificates.
--- The cold certificates have full control over the script address, while the hot certificates
+-- It is given by two lists of X509 certificates, the recovery and delegete certificates.
+-- The recovery certificates have full control over the script address, while the delegate certificates
 -- can witness the unlocked UTxO to issue a CC certificate (without any state transitions).
--- The hot certificates can also resign their power by removing themselves from the list.
+-- The delegate certificates can also resign their power by removing themselves from the list.
 -- Both list need a majority of signatures to do anything.
 data CCScriptDatum = CCScriptDatum {
-    coldX509s   :: [X509],
-    hotX509s    :: [X509]
+    recoveryX509s   :: [X509],
+    delegateX509s    :: [X509]
 }
 makeIsDataIndexed ''CCScriptDatum [('CCScriptDatum, 0)]
 
 -- [Locking script actions]
 -- This is the redeemer type of the locking script.
--- The witness action is used to witness a transaction when a hot CC certificate needs to be issued.
--- The resign X509 action is used to resign a hot CC certificate.
--- The unlock action is there for the cold certificates to unlock the UTxO for any reason. This
--- could for example be to rotate the cold certificates, remove a compromised certificate, or
+-- The delegate action is used to witness a transaction when a voter CC certificate needs to be issued.
+-- The resign X509 action is used to resign a non recovery CC certificate.
+-- The recover action is there for the recover certificates to unlock the UTxO for any reason. This
+-- could for example be to rotate the encoded recover certificates, remove a compromised certificate, or
 -- unlock the NFT to be able to lock it elsewhere (e.g. to a new updated CC membership script).
-data CCScriptRedeemer = Witness | Resign X509 | Unlock
-makeIsDataIndexed ''CCScriptRedeemer [('Witness, 0), ('Resign, 1), ('Unlock, 2)]
+data CCScriptRedeemer = Delegate | Resign X509 | Recover
+makeIsDataIndexed ''CCScriptRedeemer [('Delegate, 0), ('Resign, 1), ('Recover, 2)]
 
 -- [Locking script]
 -- The locking script is parameterized by the datum and redeemer types as above.
--- This script checks that for a given action in the redeemer (witness, resign X509, unlock) the
+-- This script checks that for a given action in the redeemer (Delegate, Resign X509, Recover) the
 -- appropriate checks are made. These are as follows,
 --
--- Witness: checks that the transaction input being spent is also an output, while preserving
+-- Delegate: checks that the transaction input being spent is also an output, while preserving
 -- the value and datum of this input (so there is no state transitions/movement of value).
--- Also, this action makes sure the transaction is signed by a majority of the hot certificates.
--- Effectively, this action witnesses control of the UTxO to be able to issue a hot CC certificate.
--- Note that this action does not check that a certificate is witnessed!
+-- Also, this action makes sure the transaction is signed by a majority of the delegate certificates.
+-- Effectively, this action witnesses control of the UTxO to be able to issue a voter CC certificate.
+-- Note that this action does not check that this certificate is witnessed!
 --
--- Resign X509: checks that the provided X509 certificate from the redeemer is in the hot list,
--- that the transaction is signed by this X509 certificate, and the certificate is removed from the hot list.
--- Lastly, this action also checks that the transaction does witness any CC certificates. To prevent 
+-- Resign X509: checks that the provided X509 certificate from the redeemer is in the delegate list,
+-- that the transaction is signed by this X509 certificate, and the certificate is removed from the delegate list.
+-- Lastly, this action also checks that the transaction does not witness any CC certificates. To prevent 
 -- unauthorized satisfaction of the above CC membership script.
 --
--- Unlock: checks that the transaction is signed by a majority of the cold certificates.
+-- Recover: checks that the transaction is signed by a majority of the recovery certificates.
 {-# INLINABLE lockingScript #-}
 lockingScript :: CCScriptDatum -> CCScriptRedeemer -> ScriptContext -> Bool
 lockingScript dtm red ctx = case scriptContextPurpose ctx of
     Spending txOurRef -> case red of
-        Witness     -> checkTxOutPreservation && checkMultiSig (hotX509s dtm)
+        Delegate     -> checkTxOutPreservation && checkMultiSig (delegateX509s dtm)
             where
                 checkTxOutPreservation = case ownInput of
                     Just txOut  -> txOut `elem` txInfoOutputs txInfo
@@ -146,14 +146,14 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
             where
                 memberX509 = x509 `elem` hotX509s'
                 txSignedX509 = txSignedBy txInfo (pubKeyHash x509)
-                hotX509s' = hotX509s dtm
-                newDatum = CCScriptDatum (coldX509s dtm) (filter (/= x509) hotX509s')
+                hotX509s' = delegateX509s dtm
+                newDatum = CCScriptDatum (recoveryX509s dtm) (filter (/= x509) hotX509s')
                 removedX509 = case ownInput of
                     Just txOut  -> let newTxOutput = txOut { txOutDatum = (OutputDatum . Datum . toBuiltinData) newDatum }
                                    in newTxOutput `elem` txInfoOutputs txInfo
                     Nothing     -> False
                 notWitnessed = txInfoTxCerts txInfo == []
-        Unlock      -> checkMultiSig (coldX509s dtm)
+        Recover      -> checkMultiSig (recoveryX509s dtm)
         where
             txInfo = scriptContextTxInfo ctx
             ownInput = txInInfoResolved <$> findTxInByTxOutRef txOurRef txInfo
