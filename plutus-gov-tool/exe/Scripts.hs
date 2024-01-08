@@ -102,7 +102,7 @@ instance Eq X509 where
 -- Both list need a majority of signatures to do anything.
 data CCScriptDatum = CCScriptDatum {
     recoveryX509s   :: [X509],
-    delegateX509s    :: [X509]
+    delegateX509s   :: [X509]
 }
 makeIsDataIndexed ''CCScriptDatum [('CCScriptDatum, 0)]
 
