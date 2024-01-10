@@ -71,6 +71,18 @@
             # add cardano-node and client to shell for running local testnets
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-node
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-cli
+
+            (pkgs.writeShellScriptBin "deploy-local-testnet" ''
+               cd local-testnet
+               scripts/babbage/mkfiles.sh
+               example/run/all.sh
+            '')
+
+            (pkgs.writeShellScriptBin "purge-local-testnet" ''
+               rm -Rf local-testnet/logs
+               rm -Rf local-testnet/example
+            '')
+
           ];
           shell.withHoogle = true;
 
