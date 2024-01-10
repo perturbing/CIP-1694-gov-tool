@@ -8,6 +8,8 @@
     iohkNix.url = "github:input-output-hk/iohk-nix";
     flake-utils.url = "github:hamishmack/flake-utils/hkm/nested-hydraJobs";
 
+    cardano-node-sancho.url = "github:IntersectMBO/cardano-node";
+
     CHaP.url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
     CHaP.flake = false;
 
@@ -65,6 +67,9 @@
           shell.buildInputs = with nixpkgs.pkgsBuildBuild; [
             # add deno for front end for now, might switch to nodejs
             deno
+            # add cardano-node and client to shell for running local testnets
+            inputs.cardano-node-sancho.outputs.packages.${system}.cardano-node
+            inputs.cardano-node-sancho.outputs.packages.${system}.cardano-cli
           ];
           shell.withHoogle = true;
 
