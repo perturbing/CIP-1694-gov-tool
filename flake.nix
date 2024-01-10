@@ -67,6 +67,7 @@
           shell.buildInputs = with nixpkgs.pkgsBuildBuild; [
             # add deno for front end for now, might switch to nodejs
             deno
+            jq
             # add cardano-node and client to shell for running local testnets
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-node
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-cli
