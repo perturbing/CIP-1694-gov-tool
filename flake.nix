@@ -10,7 +10,7 @@
 
     cardano-node-sancho.url = "github:IntersectMBO/cardano-node";
 
-    CHaP.url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
+    CHaP.url = "github:IntersectMBO/cardano-haskell-packages?ref=repo";
     CHaP.flake = false;
 
     # non-flake nix compatibility
