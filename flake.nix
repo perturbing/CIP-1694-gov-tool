@@ -61,6 +61,10 @@
             hlint = {};
             weeder = "2.4.1";
           };
+          shell.shellHook = ''
+            export REPO_ROOT="$(pwd)"
+            export CARDANO_NODE_SOCKET_PATH="$REPO_ROOT/local-testnet/example/node-spo1/node.sock"
+          '';
           # Now we use pkgsBuildBuild, to make sure that even in the cross
           # compilation setting, we don't run into issues where we pick tools
           # for the target.
@@ -68,6 +72,8 @@
             # add deno for front end for now, might switch to nodejs
             deno
             jq
+            openssl
+            python311Packages.cryptography
             # add cardano-node and client to shell for running local testnets
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-node
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-cli
@@ -81,6 +87,14 @@
             (pkgs.writeShellScriptBin "purge-local-testnet" ''
                rm -Rf local-testnet/logs
                rm -Rf local-testnet/example
+            '')
+
+            (pkgs.writeShellScriptBin "viewX509Cert" ''
+               openssl x509 -in $1 -text -noout
+            '')
+
+            (pkgs.writeShellScriptBin "verifyCert" ''
+               python3 "$REPO_ROOT/x509/verify.py" $1 $2
             '')
 
           ];
