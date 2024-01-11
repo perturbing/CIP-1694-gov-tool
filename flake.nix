@@ -70,7 +70,6 @@
           # for the target.
           shell.buildInputs = with nixpkgs.pkgsBuildBuild; [
             # add deno for front end for now, might switch to nodejs
-            deno
             jq
             openssl
             python311Packages.cryptography
