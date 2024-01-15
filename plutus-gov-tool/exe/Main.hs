@@ -12,8 +12,15 @@ import Cardano.Api
   , PlutusScriptV1
   , PlutusScriptV2
   , PlutusScriptV3
-  , IsPlutusScriptLanguage (..))
-import Cardano.Api.Shelley   (File (..), PlutusScript (..), Script (..) )
+  , IsPlutusScriptLanguage (..)
+  , Script (..)
+  , ScriptHash (..)
+  , hashScript)
+import Cardano.Api.Shelley   
+  ( File (..)
+  , PlutusScript (..)
+  , Script (..)
+  , serialiseToRawBytes)
 import PlutusTx              (CompiledCode, liftCodeDef, unsafeApplyCode)
 import qualified PlutusLedgerApi.V3 as PlutusV3
 import qualified PlutusLedgerApi.V2 as PlutusV2
@@ -35,8 +42,11 @@ writeCodeToFile version filePath = case version of
 
 ----------------------------------
 
-currencySymbol :: PlutusV2.CurrencySymbol
-currencySymbol = "4c4c8c78d1791f4ad31ffcb6a19d918f0393c3a1ade85885d518be65"
+scriptHashAlwaysTrueMint :: ScriptHash
+scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV2 . PlutusScriptSerialised . PlutusV2.serialiseCompiledCode $ alwaysTrueMintCodeV2
+
+alwaysTrueCurrencySymbol :: PlutusV2.CurrencySymbol
+alwaysTrueCurrencySymbol = PlutusV2.CurrencySymbol . PlutusV2.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMint
 
 main :: IO ()
 main = do
@@ -46,8 +56,8 @@ main = do
   -- V2
   writeCodeToFile PlutusScriptV2 "./assets/V2/alwaysTrueMint.plutus" alwaysTrueMintCodeV2
   -- Apply always true minting policy to ccScript
-  let appliedScriptV2 = ccScriptCodeV2 `unsafeApplyCode` liftCodeDef currencySymbol
-  putStrLn $ "Applied currency symbol to script: " ++ show currencySymbol
+  let appliedScriptV2 = ccScriptCodeV2 `unsafeApplyCode` liftCodeDef alwaysTrueCurrencySymbol
+  putStrLn $ "Applied currency symbol to script: " ++ show alwaysTrueCurrencySymbol
   writeCodeToFile PlutusScriptV2 "./assets/V2/ccScript.plutus" appliedScriptV2
   writeCodeToFile PlutusScriptV2 "./assets/V2/lockingScript.plutus" lockingScriptCodeV2
   putStrLn "Done."
