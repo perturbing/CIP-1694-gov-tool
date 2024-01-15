@@ -31,7 +31,7 @@ import PlutusTx.List
       foldr,
       filter, find )
 import PlutusTx.Builtins
-    ( BuiltinByteString, Integer, error )
+    ( BuiltinByteString, Integer, error, BuiltinData )
 import PlutusTx.AssocMap (member)
 import PlutusLedgerApi.V2
     ( TxOutRef(..),
@@ -165,6 +165,12 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
 
 lockingScriptCodeV2 :: CompiledCode (CCScriptDatum -> CCScriptRedeemer -> ScriptContext -> Bool)
 lockingScriptCodeV2 = $$(compile [|| lockingScript ||])
+
+alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
+alwaysTrueMint _ _ = True
+
+alwaysTrueMintCodeV2 :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
+alwaysTrueMintCodeV2 = $$(compile [|| alwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 
