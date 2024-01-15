@@ -6,7 +6,7 @@ module Main where
 import Cardano.Api           (writeFileTextEnvelope, PlutusScriptV3, PlutusScriptV2)
 import Cardano.Api.Shelley   (File (..), PlutusScript (..), Script (..))
 import PlutusTx              (CompiledCode, liftCodeDef, unsafeApplyCode)
-import Scripts               (ccScriptCode, lockingScriptCode)
+import ScriptsV3             (ccScriptCode, lockingScriptCode)
 import ScriptsV2             (ccScriptCodeV2, lockingScriptCodeV2, alwaysTrueMintCodeV2)
 import qualified PlutusLedgerApi.V3 as PlutusV3
 import qualified PlutusLedgerApi.V2 as PlutusV2

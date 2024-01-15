@@ -9,7 +9,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use null" #-}
 
-module Scripts where
+module ScriptsV3 where
 
 import PlutusTx.Prelude
     ( (.),
