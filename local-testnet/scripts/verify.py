@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives import serialization
 
 # Check if the required command-line arguments are provided
 if len(sys.argv) != 3:
-    print("Usage: script.py <CA_certificate_file> <Alice_certificate_file>")
+    print("Usage: script.py <Parent_certificate_file> <Child_certificate_file>")
     sys.exit(1)
 
 # File paths from command-line arguments
@@ -28,6 +28,9 @@ print(alice_cert.signature.hex())
 try:
     # Verify Alice's certificate
     ca_public_key = ca_cert.public_key()
+    print(" ")
+    print(ca_public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
+    print(" ")
     ca_public_key.verify(
         alice_cert.signature,
         alice_cert.tbs_certificate_bytes,

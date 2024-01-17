@@ -2,7 +2,7 @@
 
 # Check if the correct number of arguments is provided
 if [ "$#" -ne 4 ]; then
-    echo "Usage: $0 <parent_cert_location> <parent_priv_key_location> <output_location> <child_certificate_name>"
+    echo "Usage: <parent_cert_location> <parent_priv_key_location> <output_location> <child_certificate_name>"
     exit 1
 fi
 
@@ -36,8 +36,11 @@ openssl pkey -in ${CERTIFICATE_NAME}-priv.pem -pubout -out ${CERTIFICATE_NAME}-p
 # Create a CSR using the private key
 openssl req -new -key ${CERTIFICATE_NAME}-priv.pem -out ${CERTIFICATE_NAME}.csr
 
-echo $(pwd)
 # Create an x509 certificate signed by the parent CA
 openssl x509 -days 365 -req -in ${CERTIFICATE_NAME}.csr -CA ../../../${PARENT_CERT_LOCATION} -CAkey ../../../${PARENT_PRIV_KEY_LOCATION} -out ${CERTIFICATE_NAME}.pem
+
+# Create a SHA256 hash of the certificate
+# can be verified via cat ${CERTIFICATE_NAME}.pem | tail -n +2 | head -n -1 | xxd -p | tr -d '\n'
+cat ${CERTIFICATE_NAME}.pem | tail -n +2 | head -n -1 | sha256 > ${CERTIFICATE_NAME}.sha256
 
 echo "Process completed successfully."

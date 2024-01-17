@@ -72,6 +72,7 @@
             # add deno for front end for now, might switch to nodejs
             jq
             openssl
+            outils
             python311Packages.cryptography
             # add cardano-node and client to shell for running local testnets
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-node
@@ -99,7 +100,7 @@
             '')
 
             (pkgs.writeShellScriptBin "issueCert" ''
-               bash $REPO_ROOT/local-testnet/scripts/mkX509Cert.sh $1 $2 $3 $4
+               bash "$REPO_ROOT/local-testnet/scripts/mkX509Cert.sh" $1 $2 $3 $4
             '')
 
           ];
