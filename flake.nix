@@ -78,12 +78,14 @@
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-cli
 
             (pkgs.writeShellScriptBin "deploy-local-testnet" ''
+               cd $REPO_ROOT
                cd local-testnet
                scripts/babbage/mkfiles.sh
                example/run/all.sh
             '')
 
             (pkgs.writeShellScriptBin "purge-local-testnet" ''
+               cd $REPO_ROOT
                rm -Rf local-testnet/logs
                rm -Rf local-testnet/example
             '')
@@ -93,7 +95,11 @@
             '')
 
             (pkgs.writeShellScriptBin "verifyCert" ''
-               python3 "$REPO_ROOT/x509/verify.py" $1 $2
+               python3 "$REPO_ROOT/local-testnet/scripts/verify.py" $1 $2
+            '')
+
+            (pkgs.writeShellScriptBin "issueCert" ''
+               bash $REPO_ROOT/local-testnet/scripts/mkX509Cert.sh $1 $2 $3 $4
             '')
 
           ];
