@@ -9,31 +9,31 @@ if len(sys.argv) != 3:
     sys.exit(1)
 
 # File paths from command-line arguments
-ca_cert_file = sys.argv[1]
-alice_cert_file = sys.argv[2]
+parent_cert_file = sys.argv[1]
+child_cert_file = sys.argv[2]
 
-# Load CA certificate
-with open(ca_cert_file, 'rb') as f:
-    ca_cert = x509.load_pem_x509_certificate(f.read(), default_backend())
+# Load parent certificate
+with open(parent_cert_file, 'rb') as f:
+    parent_cert = x509.load_pem_x509_certificate(f.read(), default_backend())
 
-# Load Alice's certificate
-with open(alice_cert_file, 'rb') as f:
-    alice_cert = x509.load_pem_x509_certificate(f.read(), default_backend())
+# Load child's certificate
+with open(child_cert_file, 'rb') as f:
+    child_cert = x509.load_pem_x509_certificate(f.read(), default_backend())
 
-tbs_bytes = alice_cert.tbs_certificate_bytes
+tbs_bytes = child_cert.tbs_certificate_bytes
 print(tbs_bytes.hex())
 print(" ")
-print(alice_cert.signature.hex())
+print(child_cert.signature.hex())
 
 try:
-    # Verify Alice's certificate
-    ca_public_key = ca_cert.public_key()
+    # Verify child's certificate against parent
+    parent_public_key = parent_cert.public_key()
     print(" ")
-    print(ca_public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
+    print(parent_public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw).hex())
     print(" ")
-    ca_public_key.verify(
-        alice_cert.signature,
-        alice_cert.tbs_certificate_bytes,
+    parent_public_key.verify(
+        child_cert.signature,
+        child_cert.tbs_certificate_bytes,
     )
     print("Verification successful: certificate is valid.")
 except Exception as e:
