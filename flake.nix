@@ -42,7 +42,7 @@
         flake = (nixpkgs.haskell-nix.cabalProject' rec {
           src = ./.;
           name = "plutus-gov-tool";
-          compiler-nix-name = "ghc928";
+          compiler-nix-name = "ghc96";
 
           # CHaP input map, so we can find CHaP packages (needs to be more
           # recent than the index-state we set!). Can be updated with
@@ -50,7 +50,7 @@
           #  nix flake lock --update-input CHaP
           #
           inputMap = {
-            "https://input-output-hk.github.io/cardano-haskell-packages" = inputs.CHaP;
+            "https://chap.intersectmbo.org/" = inputs.CHaP;
           };
 
           # tools we want in our shell
@@ -59,7 +59,7 @@
             ghcid = "0.8.8";
             haskell-language-server = "latest";
             hlint = {};
-            weeder = "2.4.1";
+            # weeder = "2.4.1";
           };
           shell.shellHook = ''
             export REPO_ROOT="$(pwd)"
