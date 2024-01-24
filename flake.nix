@@ -73,6 +73,8 @@
             jq
             openssl
             outils
+            nodejs
+            yarn
             python311Packages.cryptography
             # add cardano-node and client to shell for running local testnets
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-node
