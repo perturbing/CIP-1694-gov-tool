@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { AppStateContext } from '@/pages/_app';
 
-export default function VerifyX509() {
+export default function CreateX509CA() {
     const { appState } = useContext(AppStateContext);
 
     // Check if the wallet is connected

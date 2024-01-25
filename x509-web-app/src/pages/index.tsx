@@ -1,14 +1,17 @@
 import React, { useState, useContext } from "react";
 import { C, Lucid, M, fromHex, fromText, getAddressDetails, toHex } from "lucid-cardano"
 
-import Create509CA from "@/components/Create509CA";
+import HomeX509 from "@/components/HomeX509";
+import Create509CA from "@/components/CreateX509CA";
 import IssueX509Child from "@/components/IssueX509Child";
 import VerifyX509 from "@/components/VerifyX509";
-import { AppStateContext, initialAppState } from "./_app";
+import { AppStateContext } from "./_app";
+
+import Image from "next/image"
 
 export default function Home() {
   // State to track the active page
-  const [activePage, setActivePage] = useState("create");
+  const [activePage, setActivePage] = useState("home");
   const { appState, setAppState } = useContext(AppStateContext);
   const { lucid } = appState;
   
@@ -22,7 +25,7 @@ export default function Home() {
       if (lucid) {
         lucid.selectWallet(lace);
         const addr = await lucid.wallet.address();
-        const details = await getAddressDetails(addr)
+        const details = getAddressDetails(addr)
         setAppState({
           ...appState,
           lucid: lucid,
@@ -102,14 +105,16 @@ export default function Home() {
   // Function to render the active page component
   const renderActivePage = () => {
     switch (activePage) {
+      case "home":
+        return HomeX509(appState);
       case "create":
-        return Create509CA();
+        return Create509CA(appState);
       case "issue":
-        return IssueX509Child();
+        return IssueX509Child(appState);
       case "verify":
-        return VerifyX509();
+        return VerifyX509(appState);
       default:
-        return Create509CA();
+        return HomeX509(appState);
     }
   };
 
@@ -122,13 +127,21 @@ export default function Home() {
 
           {/* Left side - Navigation links */}
           <div className="flex gap-4">
+            <span 
+              className={`cursor-pointer hover:underline ${
+                activePage === "home" && "font-bold"
+              }`}
+              onClick={() => setActivePage("home")}
+            >
+              Home
+            </span>
             <span
               className={`cursor-pointer hover:underline ${
                 activePage === "create" && "font-bold"
               }`}
               onClick={() => setActivePage("create")}
             >
-              Create X.509 CA
+              Create CA
             </span>
             <span
               className={`cursor-pointer hover:underline ${
@@ -136,7 +149,7 @@ export default function Home() {
               }`}
               onClick={() => setActivePage("issue")}
             >
-              Issue X.509 Child
+              Issue Child
             </span>
             <span
               className={`cursor-pointer hover:underline ${
@@ -144,7 +157,7 @@ export default function Home() {
               }`}
               onClick={() => setActivePage("verify")}
             >
-              Verify X.509
+              Verify
             </span>
           </div>
 
@@ -179,9 +192,15 @@ export default function Home() {
               </>
             ) : (
               <button
-                className="bg-blue-500 text-white px-4 py-2 rounded"
+                className="bg-blue-500 text-white px-4 py-2 rounded flex items-center justify-center gap-2"
                 onClick={connectWallet}
               >
+                <Image
+                  src="/lace.png" // Correct path to your image in the public folder
+                  alt="Wallet Icon"
+                  width={24}  // Adjust the size as needed
+                  height={24} // Adjust the size as needed
+                />
                 Connect Wallet
               </button>
             )}
