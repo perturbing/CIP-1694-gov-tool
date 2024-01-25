@@ -53,7 +53,7 @@ export default function Home() {
     try {
       const address = await appState.lucid.wallet.address();
       const now = new Date();
-      const payloadText = `Signed at: ${now.toLocaleString()}`;
+      const payloadText = `Signed at: ${now.toUTCString()}`;
       const payload = fromText(payloadText);
       const signedMessage = await appState.lucid.newMessage(address, payload).sign();
       const coseKey = M.COSEKey.from_bytes(fromHex(signedMessage.key));
