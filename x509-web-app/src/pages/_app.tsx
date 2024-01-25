@@ -3,7 +3,6 @@ import {
     Address,
     Lucid,
     PublicKey,
-    getAddressDetails,
 } from "lucid-cardano";
 import type { AppProps } from "next/app";
 import {
