@@ -106,15 +106,15 @@ export default function Home() {
   const renderActivePage = () => {
     switch (activePage) {
       case "home":
-        return HomeX509(appState);
+        return HomeX509();
       case "create":
-        return Create509CA(appState);
+        return Create509CA();
       case "issue":
-        return IssueX509Child(appState);
+        return IssueX509Child();
       case "verify":
-        return VerifyX509(appState);
+        return VerifyX509();
       default:
-        return HomeX509(appState);
+        return HomeX509();
     }
   };
 

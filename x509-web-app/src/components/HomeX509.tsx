@@ -1,7 +1,9 @@
-import React from 'react';
-import { AppState } from "@/pages/_app";
+import React, { useContext } from 'react';
+import { AppStateContext } from '@/pages/_app';
 
-export default function HomeX509(appState: AppState | undefined) {
+export default function HomeX509() {
+  const { _appState } = useContext(AppStateContext);
+
   return (
     <div className="p-4">
       <h1 className="text-lg font-bold">Welcome to this X.509 Certificate Management DApp</h1>
