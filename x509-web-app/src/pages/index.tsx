@@ -14,6 +14,14 @@ export default function Home() {
   const [activePage, setActivePage] = useState("home");
   const { appState, setAppState } = useContext(AppStateContext);
   const { lucid } = appState;
+  const [formData, setFormData] = useState({
+    country: '',
+    state: '',
+    city: '',
+    organization: '',
+    commonName: '',
+    email: ''
+  });
   
   const connectWallet = async () => {
     try {
@@ -102,19 +110,23 @@ export default function Home() {
     });
   };
 
+  const handleFormDataChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   // Function to render the active page component
   const renderActivePage = () => {
     switch (activePage) {
       case "home":
-        return HomeX509();
+        return <HomeX509 />;
       case "create":
-        return Create509CA();
+        return <Create509CA formData={formData} onFormDataChange={handleFormDataChange} />;
       case "issue":
-        return IssueX509Child();
+        return <IssueX509Child />;
       case "verify":
-        return VerifyX509();
+        return <VerifyX509 />;
       default:
-        return HomeX509();
+        return <HomeX509 />;
     }
   };
 
@@ -128,7 +140,7 @@ export default function Home() {
           {/* Left side - Navigation links */}
           <div className="flex gap-4">
             <span 
-              className={`cursor-pointer hover:underline ${
+              classNme={`cursor-pointer hover:underline ${
                 activePage === "home" && "font-bold"
               }`}
               onClick={() => setActivePage("home")}
@@ -210,8 +222,22 @@ export default function Home() {
 
       {/* Main content */}
       <main className="flex min-h-screen flex-col items-center justify-between p-24">
-        {renderActivePage()}
-      </main>
+              {!appState.pubKeyHash ? (
+                <div className="p-4 bg-gray-100 rounded shadow">
+                  <p className="text-center text-lg text-gray-600">Please connect your lace wallet via the blue button in the top right corner.</p>
+                </div>
+              ) : !appState.pubKey ? (
+                <div className="p-4 bg-gray-100 rounded shadow">
+                  <p className="text-center text-lg text-gray-600">
+                    To manage a certificate, the public key of your wallet needs to be verified. 
+                    This requires the wallet to sign a message that contains the current date and time.
+                    Please press the green button in the top right corner to sign this message.
+                  </p>
+                </div>
+              ) : (
+                renderActivePage()
+              )}
+        </main>
 
     </div>
   );

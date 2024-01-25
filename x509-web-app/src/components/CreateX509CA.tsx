@@ -1,35 +1,42 @@
-import React, { useContext } from 'react';
-import { AppStateContext } from '@/pages/_app';
+import React from 'react';
 
-export default function CreateX509CA() {
-    const { appState } = useContext(AppStateContext);
+export default function CreateX509CA({ formData, onFormDataChange }) {
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        // Handle the form submission using formData
+        // You can add your logic here to use formData for creating an X.509 certificate
+        console.log(formData);
+    };
 
-    // Check if the wallet is connected
-    if (!appState.pubKeyHash) {
-        return (
-            <div className="p-4 bg-gray-100 rounded shadow">
-                <p className="text-center text-lg text-gray-600">Please connect your lace wallet via the blue button in the top right corner.</p>
-            </div>
-        );
-    }
-
-    // Check if the public key is available
-    if (!appState.pubKey) {
-        return (
-            <div className="p-4 bg-gray-100 rounded shadow">
-                <p className="text-center text-lg text-gray-600">
-                    To manage a certificate, the public key of you wallets needs to be verified. 
-                    This requires the wallet to sign a message that contains the current date and time.
-                    Please press the green button in the top right corner to sign this message.
-                </p>
-            </div>
-        );
-    }
-
-    // If both pubKeyHash and pubKey are available
     return (
-        <div className="p-4 bg-gray-100 rounded shadow">
-            <p className="text-center text-lg text-gray-600">Hello World</p>
+        <div className="p-4 bg-white bg-opacity-90 rounded shadow">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label htmlFor="country" className="block text-sm font-medium text-gray-700">Country</label>
+                    <input type="text" id="country" value={formData.country} onChange={(e) => onFormDataChange('country', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-700" />
+                </div>
+                <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-gray-700">State</label>
+                    <input type="text" id="state" value={formData.state} onChange={(e) => onFormDataChange('state', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-700" />
+                </div>
+                <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">City</label>
+                    <input type="text" id="city" value={formData.city} onChange={(e) => onFormDataChange('city', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-700" />
+                </div>
+                <div>
+                    <label htmlFor="organization" className="block text-sm font-medium text-gray-700">Organization</label>
+                    <input type="text" id="organization" value={formData.organization} onChange={(e) => onFormDataChange('organization', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-700" />
+                </div>
+                <div>
+                    <label htmlFor="commonName" className="block text-sm font-medium text-gray-700">Common Name</label>
+                    <input type="text" id="commonName" value={formData.commonName} onChange={(e) => onFormDataChange('commonName', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-700" />
+                </div>
+                <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" value={formData.email} onChange={(e) => onFormDataChange('email', e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-700" />
+                </div>
+                <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Sign X.509 certificate</button>
+            </form>
         </div>
     );
 }
