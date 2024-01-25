@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { Lucid, getAddressDetails } from "lucid-cardano"
+import { C, Lucid, M, fromHex, fromText, getAddressDetails, toHex } from "lucid-cardano"
 
 import Create509CA from "@/components/Create509CA";
 import IssueX509Child from "@/components/IssueX509Child";
@@ -46,18 +46,52 @@ export default function Home() {
   };
 
   const loadPublicKey = async () => {
-    console.log("Loading public key");
-    setAppState({
-      ...appState,
-      pubKey: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
-    });
+    if (!appState.lucid) {
+      window.alert("Please connect a wallet first");
+      return;
+    }
+    try {
+      const address = await appState.lucid.wallet.address();
+      const now = new Date();
+      const payloadText = `Signed at: ${now.toLocaleString()}`;
+      const payload = fromText(payloadText);
+      const signedMessage = await appState.lucid.newMessage(address, payload).sign();
+      const coseKey = M.COSEKey.from_bytes(fromHex(signedMessage.key));
+
+      // Now use the 'header' method on the M.COSEKey instance
+      const publicKey = (() => {
+        try {
+          return C.PublicKey.from_bytes(
+            coseKey.header(M.Label.new_int(
+              M.Int.new_negative(
+                M.BigNum.from_str("2"),
+              ),
+            ))?.as_bytes()!,
+          );
+        } catch (_e) {
+          throw new Error("No public key found.");
+        }
+      })();
+
+      setAppState({
+        ...appState,
+        pubKey: toHex(publicKey.as_bytes()),
+      });
+    } catch (e) {
+      console.log(e)
+      return;
+    }
   }
 
-  const getShortenedKey = (key) => {
+  const getShortenedKey = (key:string) => {
     return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
   };
 
   const copyToClipboard = () => {
+    if (!appState.pubKey) {
+      window.alert("Please load a public key first");
+      return;
+    }
     navigator.clipboard.writeText(appState.pubKey).then(() => {
       window.alert("Public key copied to clipboard!");
     }, (err) => {
