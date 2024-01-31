@@ -16,20 +16,20 @@ export const processPemKey = (pemKey: string, prefix: string): string => {
     }
 };
 
-export const callOpenSSL = async (requestType, inputData, errorMsg) => {
+export const callOpenSSL = async (requestType, inputData, auxData, errorMsg) => {
     try {
       const response = await fetch('/api/openssl', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ type: requestType, data: inputData }),
+        body: JSON.stringify({ type: requestType, data: inputData, aux: auxData}),
       });
       const data = await response.json();
       if (response.ok) {
-        return data; // Return the successful response data
+        return data;
       } else {
-        throw new Error( "Error calling API: " + errorMsg);
+        throw new Error( "Error calling API: " + errorMsg );
       }
     } catch (error) {
       // You could also rethrow the error to handle it outside, or handle it here

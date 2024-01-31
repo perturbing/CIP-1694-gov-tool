@@ -18,6 +18,7 @@ export default function Home() {
     state: '',
     city: '',
     organization: '',
+    organizationalUnit: '',
     commonName: '',
     email: ''
   });
@@ -35,7 +36,7 @@ export default function Home() {
           const text = e.target.result;
           
           // call api to calculate public key from private key, upon succes store both values.
-          callOpenSSL("publicKey",text as string, "that was not a valid ed25519 openSSL private key")
+          callOpenSSL("publicKey",text as string,null, "that was not a valid ed25519 openSSL private key")
             .then(data => {
               const pk = processPemKey(data.result,"302a300506032b6570032100")
               setAppState({
@@ -77,7 +78,7 @@ export default function Home() {
       case "home":
         return <HomeX509 />;
       case "create":
-        return <Create509CA formData={formData} onFormDataChange={handleFormDataChange} />;
+        return <Create509CA formData={formData} onFormDataChange={handleFormDataChange} privKey={appState.openSSLPrivKey} />;
       case "issue":
         return <IssueX509Child />;
       case "verify":
