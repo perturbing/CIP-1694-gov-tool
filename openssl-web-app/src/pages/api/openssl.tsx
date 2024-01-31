@@ -15,9 +15,9 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         command = `echo "${inputData}" | openssl pkey -pubout`;
         break;
       case 'createCA':
-        const { country, state, city, organization, organizationalUnit , commonName } = auxData;
+        const { country, state, city, organization, organizationalUnit , commonName, validity } = auxData;
         const subj = `/C=${country}/ST=${state}/L=${city}/O=${organization}/OU=${organizationalUnit}/CN=${commonName}`;
-        command = `echo "${inputData}" | openssl req -new -x509 -key /dev/stdin -subj "${subj}"`;
+        command = `echo "${inputData}" | openssl req -new -x509 -days ${validity} -key /dev/stdin -subj "${subj}"`;
         break;
       default:
         return res.status(400).json({ error: 'Invalid request type' });

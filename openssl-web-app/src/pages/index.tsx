@@ -20,7 +20,8 @@ export default function Home() {
     organization: '',
     organizationalUnit: '',
     commonName: '',
-    email: ''
+    email: '',
+    validity: 0
   });
 
   const openOpenSSLKey = async () => {
