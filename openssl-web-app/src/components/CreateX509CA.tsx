@@ -4,7 +4,7 @@ import React from 'react';
 export default function CreateX509CA({ formData, onFormDataChange, privKey }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
-        callOpenSSL('createCA', privKey, formData, 'Error creating X.509 certificate')
+        callOpenSSL('createCA', {privKey: privKey, formData: formData}, 'Error creating X.509 certificate')
             .then(data => {
                 copyToClipboard(data.result, 'X.509 certificate copied to clipboard');
             })

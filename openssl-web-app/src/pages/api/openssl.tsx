@@ -1,31 +1,37 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-const { exec } = require('child_process');
+import { exec } from 'child_process';
 
 // export default function handler(req, res) {
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<void>(async (resolve, reject) => {
     const requestType = req.body.type; // Type of OpenSSL request
     const inputData = req.body.data; // Input data for the OpenSSL command
-    const auxData = req.body.aux; // Auxiliary data for the OpenSSL command
 
-    let command;
-
+    let command: string;
+    let subj: string;
+    
+    // Common logic for 'createCA' and 'createCSR'
+    if (requestType === 'createCA' || requestType === 'createCSR') {
+        const { privKey, formData } = inputData;
+        const { country, state, city, organization, organizationalUnit, commonName } = formData;
+        subj = `/C=${country}/ST=${state}/L=${city}/O=${organization}/OU=${organizationalUnit}/CN=${commonName}`;
+    }
+    
     switch (requestType) {
       case 'publicKey':
-        command = `echo "${inputData}" | openssl pkey -pubout`;
-        break;
+          command = `openssl pkey -in <(echo "${inputData}") -pubout`;
+          break;
       case 'createCA':
-        var { country, state, city, organization, organizationalUnit , commonName, validity } = auxData;
-        var subj = `/C=${country}/ST=${state}/L=${city}/O=${organization}/OU=${organizationalUnit}/CN=${commonName}`;
-        command = `echo "${inputData}" | openssl req -new -x509 -days ${validity} -key /dev/stdin -subj "${subj}"`;
-        break;
+          command = `openssl req -new -x509 -days ${inputData.formData.validity} -key <(echo "${inputData.privKey}") -subj "${subj}"`;
+          break;
       case 'createCSR':
-        var { country, state, city, organization, organizationalUnit , commonName, validity } = auxData;
-        var subj = `/C=${country}/ST=${state}/L=${city}/O=${organization}/OU=${organizationalUnit}/CN=${commonName}`;
-        command = `echo "${inputData}" | openssl req -new -key /dev/stdin -subj "${subj}"`;
-        break;
+          command = `echo "${inputData.privKey}" | openssl req -new -key /dev/stdin -subj "${subj}"`;
+          break;
       case 'viewCSR':
-        command = `echo "${inputData}" | openssl req -text -noout`;
+        command = `openssl req -in <(echo "${inputData}") -text -noout`;
+        break;
+      case 'viewX509':
+        command = `openssl x509 -in <(echo "${inputData}") -text -noout`;
         break;
       default:
         return res.status(400).json({ error: 'Invalid request type' });

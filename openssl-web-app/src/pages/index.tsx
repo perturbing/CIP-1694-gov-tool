@@ -24,6 +24,11 @@ export default function Home() {
     email: '',
     validity: 0
   });
+  const [csrData, setCSRData] = useState({
+    ownCert: '',
+    csr: '',
+    decodedData: ''
+  });
 
   const openOpenSSLKey = async () => {
     const fileInput = document.createElement('input');
@@ -38,7 +43,7 @@ export default function Home() {
           const text = e.target.result;
           
           // call api to calculate public key from private key, upon succes store both values.
-          callOpenSSL("publicKey",text as string,null, "that was not a valid ed25519 openSSL private key")
+          callOpenSSL("publicKey",text as string, "that was not a valid ed25519 openSSL private key")
             .then(data => {
               const pk = processPemKey(data.result,"302a300506032b6570032100")
               setAppState({
@@ -73,8 +78,11 @@ export default function Home() {
   const handleFormDataChange = (field:string, value:string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
-
   
+  const handleCSRChange = (field:string,value:string) => {
+    setCSRData(prev => ({ ...prev, [field]: value }));
+  }
+
   // Function to render the active page component
   const renderActivePage = () => {
     switch (activePage) {
@@ -85,7 +93,7 @@ export default function Home() {
       case "csr":
         return <CreateX509CSR formData={formData} onFormDataChange={handleFormDataChange} privKey={appState.openSSLPrivKey} />;
       case "issue":
-        return <IssueX509Child />;
+        return <IssueX509Child csr={csrData} setCSR={handleCSRChange} privKey={appState.openSSLPrivKey} />;
       case "verify":
         return <VerifyX509 />;
       default:

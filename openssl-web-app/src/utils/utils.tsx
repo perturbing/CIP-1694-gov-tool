@@ -16,14 +16,14 @@ export const processPemKey = (pemKey: string, prefix: string): string => {
     }
 };
 
-export const callOpenSSL = async (requestType, inputData, auxData, errorMsg) => {
+export const callOpenSSL = async (requestType, inputData, errorMsg) => {
     try {
       const response = await fetch('/api/openssl', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ type: requestType, data: inputData, aux: auxData}),
+        body: JSON.stringify({ type: requestType, data: inputData}),
       });
       const data = await response.json();
       if (response.ok) {
