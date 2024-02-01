@@ -15,9 +15,17 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         command = `echo "${inputData}" | openssl pkey -pubout`;
         break;
       case 'createCA':
-        const { country, state, city, organization, organizationalUnit , commonName, validity } = auxData;
-        const subj = `/C=${country}/ST=${state}/L=${city}/O=${organization}/OU=${organizationalUnit}/CN=${commonName}`;
+        var { country, state, city, organization, organizationalUnit , commonName, validity } = auxData;
+        var subj = `/C=${country}/ST=${state}/L=${city}/O=${organization}/OU=${organizationalUnit}/CN=${commonName}`;
         command = `echo "${inputData}" | openssl req -new -x509 -days ${validity} -key /dev/stdin -subj "${subj}"`;
+        break;
+      case 'createCSR':
+        var { country, state, city, organization, organizationalUnit , commonName, validity } = auxData;
+        var subj = `/C=${country}/ST=${state}/L=${city}/O=${organization}/OU=${organizationalUnit}/CN=${commonName}`;
+        command = `echo "${inputData}" | openssl req -new -key /dev/stdin -subj "${subj}"`;
+        break;
+      case 'viewCSR':
+        command = `echo "${inputData}" | openssl req -text -noout`;
         break;
       default:
         return res.status(400).json({ error: 'Invalid request type' });
@@ -34,6 +42,9 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         return resolve(); // Resolve the promise after sending response
       }
       res.status(200).json({ result: stdout });
+      console.log(stdout);
+      console.log(stderr);
+      console.log(error);
       resolve(); // Resolve the promise after sending response
     });
 

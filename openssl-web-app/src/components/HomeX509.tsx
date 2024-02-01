@@ -10,7 +10,8 @@ export default function HomeX509() {
       <p>This application integrates OpenSSL in the browser for managing X.509 certificates over ed25519. </p>
       <p>Here's what you can do:</p>
       <ul className="list-disc ml-8 mt-4">
-        <li>Create Self-Signed X.509 Certificates.</li>
+        <li>Create Self-Signed X.509 Certificates (CA).</li>
+        <li>Create Certificate Signing Requests (CSRs).</li>
         <li>Issue Child Certificates.</li>
         <li>Verify X.509 Certificates</li>
       </ul>

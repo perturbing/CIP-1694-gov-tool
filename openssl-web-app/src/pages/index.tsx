@@ -3,6 +3,7 @@ import { C, Lucid, M, fromHex, fromText, getAddressDetails, toHex } from "lucid-
 
 import HomeX509 from "@/components/HomeX509";
 import Create509CA from "@/components/CreateX509CA";
+import CreateX509CSR from "@/components/CreateX509CSR";
 import IssueX509Child from "@/components/IssueX509Child";
 import VerifyX509 from "@/components/VerifyX509";
 import { AppStateContext } from "./_app";
@@ -73,6 +74,7 @@ export default function Home() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  
   // Function to render the active page component
   const renderActivePage = () => {
     switch (activePage) {
@@ -80,6 +82,8 @@ export default function Home() {
         return <HomeX509 />;
       case "create":
         return <Create509CA formData={formData} onFormDataChange={handleFormDataChange} privKey={appState.openSSLPrivKey} />;
+      case "csr":
+        return <CreateX509CSR formData={formData} onFormDataChange={handleFormDataChange} privKey={appState.openSSLPrivKey} />;
       case "issue":
         return <IssueX509Child />;
       case "verify":
@@ -113,6 +117,14 @@ export default function Home() {
               onClick={() => setActivePage("create")}
             >
               Create CA
+            </span>
+            <span
+              className={`cursor-pointer hover:underline ${
+                activePage === "csr" && "font-bold"
+              }`}
+              onClick={() => setActivePage("csr")}
+            >
+              Create CSR
             </span>
             <span
               className={`cursor-pointer hover:underline ${
