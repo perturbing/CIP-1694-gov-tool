@@ -16,8 +16,13 @@ export default function IssueX509Child({ csr, setCSR, privKey }) {
 
     // Example action function for the button
     const handleButtonClick = () => {
-        console.log('CSR: ' + csr.csr);
-
+        callOpenSSL('signCSR', {csr:csr.csr, ownCert:csr.ownCert,validity:365, privKey:privKey}, 'Error signing CSR')
+            .then(data => {
+                copyToClipboard(data.result, 'Signed X.509 copied to clipboard');
+            })
+            .catch(error => {
+                window.alert("Error calling API: " + error);
+            });
     };
 
     return (

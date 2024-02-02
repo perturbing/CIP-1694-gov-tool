@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { exec } from 'child_process';
+import { execSync } from 'child_process';
 
 // export default function handler(req, res) {
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -33,26 +33,26 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       case 'viewX509':
         command = `openssl x509 -in <(echo "${inputData}") -text -noout`;
         break;
+      case 'signCSR':
+        command = `openssl x509 -days ${inputData.validity} -req -in <(echo "${inputData.csr}") -CA <(echo "${inputData.ownCert}") -CAkey <(echo "${inputData.privKey}")`;
+        break;
       default:
         return res.status(400).json({ error: 'Invalid request type' });
     }
 
-    // Execute the command
-    const process = exec(command, (error, stdout, stderr) => {
-      if (error) {
-        res.status(500).json({ error: error.message });
-        return resolve(); // Resolve the promise after sending response
+    try {
+      const output = execSync(command).toString();
+      res.status(200).json({ result: output });
+    } catch (error) {
+      if (error.stdout) {
+        res.status(500).json({ error: error.stdout}); 
+        return resolve();
       }
-      if (stderr) {
-        res.status(500).json({ error: stderr });
-        return resolve(); // Resolve the promise after sending response
+      if (error.stderr) {
+        res.status(500).json({ error: error.stderr});
+        return resolve();
       }
-      res.status(200).json({ result: stdout });
-      console.log(stdout);
-      console.log(stderr);
-      console.log(error);
-      resolve(); // Resolve the promise after sending response
-    });
-
+    }
+  
   });
 }
