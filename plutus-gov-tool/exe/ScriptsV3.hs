@@ -2,6 +2,7 @@
 {-# LANGUAGE NamedFieldPuns                     #-}
 {-# LANGUAGE DataKinds                          #-}
 {-# LANGUAGE NoImplicitPrelude                  #-}
+{-# LANGUAGE ViewPatterns                       #-}
 {-# LANGUAGE Strict                             #-}
 {-# OPTIONS_GHC -O0                             #-}
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas   #-}
@@ -169,8 +170,8 @@ lockingScriptCode = $$(compile [|| lockingScript ||])
 alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
 alwaysTrueMint _ _ = True
 
-alwaysTrueMintCode :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
-alwaysTrueMintCode = $$(compile [|| alwaysTrueMint ||])
+alwaysTrueMintCodeV3 :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
+alwaysTrueMintCodeV3 = $$(compile [|| alwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 

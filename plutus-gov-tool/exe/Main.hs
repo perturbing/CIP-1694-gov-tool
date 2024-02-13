@@ -26,7 +26,9 @@ import qualified PlutusLedgerApi.V3 as PlutusV3
 import qualified PlutusLedgerApi.V2 as PlutusV2
 import qualified PlutusLedgerApi.V1 as PlutusV1
 
-import ScriptsV3             (ccScriptCode, lockingScriptCode, alwaysTrueMintCode)
+import ScriptsV3             (alwaysTrueMintCodeV3)
+import ScriptsV2             (alwaysTrueMintCodeV2)
+import ScriptsV1             (alwaysTrueMintCodeV1)
 
 writePlutusScriptToFile :: IsPlutusScriptLanguage lang => FilePath -> PlutusScript lang -> IO ()
 writePlutusScriptToFile filePath script = writeFileTextEnvelope (File filePath) Nothing script >>= \case
@@ -41,17 +43,29 @@ writeCodeToFile version filePath = case version of
 
 ----------------------------------
 
-scriptHashAlwaysTrueMint :: ScriptHash
-scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ alwaysTrueMintCode
+scriptHashAlwaysTrueMintV3 :: ScriptHash
+scriptHashAlwaysTrueMintV3 = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ alwaysTrueMintCodeV3
 
-alwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
-alwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMint
+scriptHashAlwaysTrueMintV2 :: ScriptHash
+scriptHashAlwaysTrueMintV2 = hashScript . PlutusScript PlutusScriptV2 . PlutusScriptSerialised . PlutusV2.serialiseCompiledCode $ alwaysTrueMintCodeV2
+
+scriptHashAlwaysTrueMintV1 :: ScriptHash
+scriptHashAlwaysTrueMintV1 = hashScript . PlutusScript PlutusScriptV1 . PlutusScriptSerialised . PlutusV1.serialiseCompiledCode $ alwaysTrueMintCodeV1
+
+alwaysTrueCurrencySymbolV3 :: PlutusV3.CurrencySymbol
+alwaysTrueCurrencySymbolV3 = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMintV3
+
+alwaysTrueCurrencySymbolV2 :: PlutusV2.CurrencySymbol
+alwaysTrueCurrencySymbolV2 = PlutusV2.CurrencySymbol . PlutusV2.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMintV2
+
+alwaysTrueCurrencySymbolV1 :: PlutusV1.CurrencySymbol
+alwaysTrueCurrencySymbolV1 = PlutusV1.CurrencySymbol . PlutusV1.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMintV1
 
 main :: IO ()
 main = do
-  writeCodeToFile PlutusScriptV3 "./assets/V3/lockingScript.plutus" lockingScriptCode
-  writeCodeToFile PlutusScriptV3 "./assets/V3/alwaysTrueMint.plutus" alwaysTrueMintCode
-  let ccScriptCodeAppliedSymbol = ccScriptCode `unsafeApplyCode` liftCodeDef alwaysTrueCurrencySymbol
-  putStrLn $ "Applied currency symbol to script: " ++ show alwaysTrueCurrencySymbol
-  writeCodeToFile PlutusScriptV3 "./assets/V3/ccScript.plutus" ccScriptCodeAppliedSymbol
-  putStrLn "Done."
+  writeCodeToFile PlutusScriptV3 "./assets/V3/alwaysTrueMint.plutus" alwaysTrueMintCodeV3
+  putStrLn $ "V3 currency symbol of always True script: " ++ show alwaysTrueCurrencySymbolV3
+  writeCodeToFile PlutusScriptV2 "./assets/V2/alwaysTrueMint.plutus" alwaysTrueMintCodeV2
+  putStrLn $ "V2 currency symbol of always True script: " ++ show alwaysTrueCurrencySymbolV2
+  writeCodeToFile PlutusScriptV1 "./assets/V1/alwaysTrueMint.plutus" alwaysTrueMintCodeV1
+  putStrLn $ "V1 currency symbol of always True script: " ++ show alwaysTrueCurrencySymbolV1
