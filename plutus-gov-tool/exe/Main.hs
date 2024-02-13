@@ -26,8 +26,7 @@ import qualified PlutusLedgerApi.V3 as PlutusV3
 import qualified PlutusLedgerApi.V2 as PlutusV2
 import qualified PlutusLedgerApi.V1 as PlutusV1
 
-import ScriptsV3             (ccScriptCode, lockingScriptCode)
-import ScriptsV2             (ccScriptCodeV2, lockingScriptCodeV2, alwaysTrueMintCodeV2)
+import ScriptsV3             (ccScriptCode, lockingScriptCode, alwaysTrueMintCode)
 
 writePlutusScriptToFile :: IsPlutusScriptLanguage lang => FilePath -> PlutusScript lang -> IO ()
 writePlutusScriptToFile filePath script = writeFileTextEnvelope (File filePath) Nothing script >>= \case
@@ -43,21 +42,16 @@ writeCodeToFile version filePath = case version of
 ----------------------------------
 
 scriptHashAlwaysTrueMint :: ScriptHash
-scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV2 . PlutusScriptSerialised . PlutusV2.serialiseCompiledCode $ alwaysTrueMintCodeV2
+scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ alwaysTrueMintCode
 
-alwaysTrueCurrencySymbol :: PlutusV2.CurrencySymbol
-alwaysTrueCurrencySymbol = PlutusV2.CurrencySymbol . PlutusV2.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMint
+alwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
+alwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMint
 
 main :: IO ()
 main = do
-  -- V3 (we can run this once the ledger implements the V3 Context)
-  writeCodeToFile PlutusScriptV3 "./assets/V3/ccScript.plutus" ccScriptCode
   writeCodeToFile PlutusScriptV3 "./assets/V3/lockingScript.plutus" lockingScriptCode
-  -- V2
-  writeCodeToFile PlutusScriptV2 "./assets/V2/alwaysTrueMint.plutus" alwaysTrueMintCodeV2
-  -- Apply always true minting policy to ccScript
-  let appliedScriptV2 = ccScriptCodeV2 `unsafeApplyCode` liftCodeDef alwaysTrueCurrencySymbol
+  writeCodeToFile PlutusScriptV3 "./assets/V3/alwaysTrueMint.plutus" alwaysTrueMintCode
+  let ccScriptCodeAppliedSymbol = ccScriptCode `unsafeApplyCode` liftCodeDef alwaysTrueCurrencySymbol
   putStrLn $ "Applied currency symbol to script: " ++ show alwaysTrueCurrencySymbol
-  writeCodeToFile PlutusScriptV2 "./assets/V2/ccScript.plutus" appliedScriptV2
-  writeCodeToFile PlutusScriptV2 "./assets/V2/lockingScript.plutus" lockingScriptCodeV2
+  writeCodeToFile PlutusScriptV3 "./assets/V3/ccScript.plutus" ccScriptCodeAppliedSymbol
   putStrLn "Done."
