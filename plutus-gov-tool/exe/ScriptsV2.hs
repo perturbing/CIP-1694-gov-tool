@@ -22,8 +22,8 @@ import PlutusTx
 import PlutusTx.Bool
     ( Bool(..) )
 
-alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
+alwaysTrueMint :: BuiltinData -> BuiltinData -> Bool
 alwaysTrueMint _ _ = True
 
-alwaysTrueMintCodeV2 :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
+alwaysTrueMintCodeV2 :: CompiledCode (BuiltinData -> BuiltinData -> Bool)
 alwaysTrueMintCodeV2 = $$(compile [|| alwaysTrueMint ||])

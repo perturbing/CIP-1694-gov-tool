@@ -167,10 +167,10 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
 lockingScriptCode :: CompiledCode (CCScriptDatum -> CCScriptRedeemer -> ScriptContext -> Bool)
 lockingScriptCode = $$(compile [|| lockingScript ||])
 
-alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
+alwaysTrueMint :: BuiltinData -> BuiltinData -> Bool
 alwaysTrueMint _ _ = True
 
-alwaysTrueMintCodeV3 :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
+alwaysTrueMintCodeV3 :: CompiledCode (BuiltinData -> BuiltinData -> Bool)
 alwaysTrueMintCodeV3 = $$(compile [|| alwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
