@@ -8,9 +8,8 @@
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas   #-}
 {-# OPTIONS_GHC -fno-omit-interface-pragmas     #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use null" #-}
 
-module ScriptsV3 where
+module Scripts where
 
 import PlutusTx.Prelude
     ( (.),
@@ -23,6 +22,7 @@ import PlutusTx.Prelude
       Maybe (..), 
       maybe, 
       (<$>), 
+      check,
       (/=), 
       modulo )
 import PlutusTx.List
@@ -47,6 +47,7 @@ import PlutusLedgerApi.V3
       TxCert (..), 
       ToData (..), 
       Datum (..), 
+      UnsafeFromData (..),
       OutputDatum (..))
 import PlutusTx
     ( compile,
@@ -78,8 +79,8 @@ ccScript symbol _ ctx = any (\value -> symbol `member` value) txInputsValues
         -- The list of value maps of the transaction inputs.
         txInputsValues = map (getValue . txOutValue . txInInfoResolved) txInputs
 
-ccScriptCode :: CompiledCode (CurrencySymbol -> () -> ScriptContext -> Bool)
-ccScriptCode = $$(compile [|| ccScript ||])
+-- ccScriptCode :: CompiledCode (CurrencySymbol -> () -> ScriptContext -> Bool)
+-- ccScriptCode = $$(compile [|| ccScript ||])
 
 -- X509 is a data type that represents a commitment to an X509 certificate.
 -- It is given by the hash of the public key that is in the certificate.
@@ -164,14 +165,24 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
                     numberOfSignatures = length $ filter (txSignedBy txInfo . pubKeyHash) list
     _                 -> False
 
-lockingScriptCode :: CompiledCode (CCScriptDatum -> CCScriptRedeemer -> ScriptContext -> Bool)
-lockingScriptCode = $$(compile [|| lockingScript ||])
+{-# INLINABLE wrappedLockingScript #-}
+wrappedLockingScript :: BuiltinData -> BuiltinData -> BuiltinData -> ()
+wrappedLockingScript = wrapSpending lockingScript
 
-alwaysTrueMint :: BuiltinData -> BuiltinData -> Bool
+lockingScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
+lockingScriptCode = $$(compile [|| wrappedLockingScript ||])
+
+-- testing purposes
+
+alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
 alwaysTrueMint _ _ = True
 
-alwaysTrueMintCodeV3 :: CompiledCode (BuiltinData -> BuiltinData -> Bool)
-alwaysTrueMintCodeV3 = $$(compile [|| alwaysTrueMint ||])
+{-# INLINABLE wrappedAlwaysTrueMint #-}
+wrappedAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
+wrappedAlwaysTrueMint = wrapCertifying alwaysTrueMint
+
+alwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
+alwaysTrueMintCode = $$(compile [|| wrappedAlwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 
@@ -186,3 +197,23 @@ txSignedBy TxInfo{txInfoSignatories} k = case find (k ==) txInfoSignatories of
 {-# INLINABLE findTxInByTxOutRef #-}
 findTxInByTxOutRef :: TxOutRef -> TxInfo -> Maybe TxInInfo
 findTxInByTxOutRef outRef txInfo = find (\txIn -> txInInfoOutRef txIn == outRef) (txInfoInputs txInfo)
+
+{-# INLINABLE wrapSpending #-}
+wrapSpending :: ( UnsafeFromData a
+                , UnsafeFromData b)
+              => (a -> b -> ScriptContext -> Bool)
+              -> (BuiltinData -> BuiltinData -> BuiltinData -> ())
+wrapSpending f a b ctx =
+  check $ f
+      (unsafeFromBuiltinData a)
+      (unsafeFromBuiltinData b)
+      (unsafeFromBuiltinData ctx)
+
+{-# INLINABLE wrapCertifying #-}
+wrapCertifying  :: (UnsafeFromData a)
+                => (a -> ScriptContext -> Bool)
+                -> (BuiltinData -> BuiltinData -> ())
+wrapCertifying f a ctx =
+  check $ f
+      (unsafeFromBuiltinData a)
+      (unsafeFromBuiltinData ctx)
