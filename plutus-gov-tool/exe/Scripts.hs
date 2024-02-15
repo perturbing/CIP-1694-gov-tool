@@ -177,12 +177,15 @@ lockingScriptCode = $$(compile [|| wrappedLockingScript ||])
 alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
 alwaysTrueMint _ _ = True
 
-{-# INLINABLE wrappedAlwaysTrueMint #-}
-wrappedAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
-wrappedAlwaysTrueMint = wrapCertifying alwaysTrueMint
+alwaysTrueMintCode :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
+alwaysTrueMintCode = $$(compile [|| alwaysTrueMint ||])
 
-alwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
-alwaysTrueMintCode = $$(compile [|| wrappedAlwaysTrueMint ||])
+-- {-# INLINABLE wrappedAlwaysTrueMint #-}
+-- wrappedAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
+-- wrappedAlwaysTrueMint = wrapCertifying alwaysTrueMint
+
+-- alwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
+-- alwaysTrueMintCode = $$(compile [|| wrappedAlwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 
