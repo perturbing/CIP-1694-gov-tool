@@ -41,7 +41,8 @@ writeCodeToFile version filePath = case version of
   PlutusScriptV3 -> writePlutusScriptToFile @PlutusScriptV3 filePath . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode
 
 scriptHashAlwaysTrueMint :: ScriptHash
-scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ alwaysTrueMintCode
+scriptHashAlwaysTrueMint = "0a1fa5015c69f9535c4c984a6fcb7c16b4f33cd52ffc840488f8459b"
+-- scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ alwaysTrueMintCode
 
 alwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
 alwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMint

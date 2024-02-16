@@ -3,10 +3,16 @@
 {-# LANGUAGE DataKinds                          #-}
 {-# LANGUAGE NoImplicitPrelude                  #-}
 {-# LANGUAGE ViewPatterns                       #-}
-{-# LANGUAGE Strict                             #-}
-{-# OPTIONS_GHC -O0                             #-}
+
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas   #-}
 {-# OPTIONS_GHC -fno-omit-interface-pragmas     #-}
+{-# OPTIONS_GHC -fno-full-laziness              #-}
+{-# OPTIONS_GHC -fno-spec-constr                #-}
+{-# OPTIONS_GHC -fno-specialise                 #-}
+{-# OPTIONS_GHC -fno-strictness                 #-}
+{-# OPTIONS_GHC -fno-unbox-strict-fields        #-}
+{-# OPTIONS_GHC -fno-unbox-small-strict-fields  #-}
+
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas       #-}
 {-# HLINT ignore "Use null"                     #-}
 
@@ -209,8 +215,8 @@ alwaysTrueMint _ _ = True
 wrappedAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
 wrappedAlwaysTrueMint = wrapTwoArgs alwaysTrueMint
 
-alwaysTrueMintCode :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
-alwaysTrueMintCode = $$(compile [|| alwaysTrueMint ||])
+alwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
+alwaysTrueMintCode = $$(compile [|| wrappedAlwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 
@@ -225,5 +231,3 @@ txSignedBy TxInfo{txInfoSignatories} k = case find (k ==) txInfoSignatories of
 {-# INLINABLE findTxInByTxOutRef #-}
 findTxInByTxOutRef :: TxOutRef -> TxInfo -> Maybe TxInInfo
 findTxInByTxOutRef outRef txInfo = find (\txIn -> txInInfoOutRef txIn == outRef) (txInfoInputs txInfo)
-
-
