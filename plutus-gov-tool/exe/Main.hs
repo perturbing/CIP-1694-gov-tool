@@ -26,7 +26,7 @@ import qualified PlutusLedgerApi.V3 as PlutusV3
 import qualified PlutusLedgerApi.V2 as PlutusV2
 import qualified PlutusLedgerApi.V1 as PlutusV1
 
-import Scripts                (ccScriptCode, lockingScriptCode, alwaysTrueMintCode )
+import Scripts                (blsMintCode, blsSpendCode )
 import qualified PlutusLedgerApi.V1 as V3
 
 writePlutusScriptToFile :: IsPlutusScriptLanguage lang => FilePath -> PlutusScript lang -> IO ()
@@ -40,18 +40,8 @@ writeCodeToFile version filePath = case version of
   PlutusScriptV2 -> writePlutusScriptToFile @PlutusScriptV2 filePath . PlutusScriptSerialised . PlutusV2.serialiseCompiledCode
   PlutusScriptV3 -> writePlutusScriptToFile @PlutusScriptV3 filePath . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode
 
-scriptHashAlwaysTrueMint :: ScriptHash
-scriptHashAlwaysTrueMint = "0a1fa5015c69f9535c4c984a6fcb7c16b4f33cd52ffc840488f8459b"
--- scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ alwaysTrueMintCode
-
-alwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
-alwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMint
-
 main :: IO ()
 main = do
-  writeCodeToFile PlutusScriptV3 "./assets/V3/alwaysTrueMint.plutus" alwaysTrueMintCode
-  let ccScriptCodeAplied = ccScriptCode `unsafeApplyCode` liftCodeDef (V3.toBuiltinData alwaysTrueCurrencySymbol)
-  putStrLn $ "Applied currency symbol " ++ show alwaysTrueCurrencySymbol ++ " to ccScriptCode"
-  writeCodeToFile PlutusScriptV3 "./assets/V3/ccScript.plutus" ccScriptCodeAplied
-  writeCodeToFile PlutusScriptV3 "./assets/V3/lockingScript.plutus" lockingScriptCode
+  writeCodeToFile PlutusScriptV3 "./assets/V3/blsMint.plutus" blsMintCode
+  writeCodeToFile PlutusScriptV3 "./assets/V3/blsSpend.plutus" blsSpendCode
   putStrLn "done!"
