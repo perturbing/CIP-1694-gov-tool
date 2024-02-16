@@ -21,12 +21,13 @@ import Cardano.Api.Shelley
   , PlutusScript (..)
   , Script (..)
   , serialiseToRawBytes)
-import PlutusTx              (CompiledCode, liftCodeDef, unsafeApplyCode)
+import PlutusTx               (CompiledCode, liftCodeDef, unsafeApplyCode)
 import qualified PlutusLedgerApi.V3 as PlutusV3
 import qualified PlutusLedgerApi.V2 as PlutusV2
 import qualified PlutusLedgerApi.V1 as PlutusV1
 
-import Scripts               (alwaysTrueMintCode, lockingScriptCode)
+import Scripts                (ccScriptCode, lockingScriptCode, alwaysTrueMintCode )
+import qualified PlutusLedgerApi.V1 as V3
 
 writePlutusScriptToFile :: IsPlutusScriptLanguage lang => FilePath -> PlutusScript lang -> IO ()
 writePlutusScriptToFile filePath script = writeFileTextEnvelope (File filePath) Nothing script >>= \case
@@ -39,10 +40,17 @@ writeCodeToFile version filePath = case version of
   PlutusScriptV2 -> writePlutusScriptToFile @PlutusScriptV2 filePath . PlutusScriptSerialised . PlutusV2.serialiseCompiledCode
   PlutusScriptV3 -> writePlutusScriptToFile @PlutusScriptV3 filePath . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode
 
-----------------------------------
+scriptHashAlwaysTrueMint :: ScriptHash
+scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ alwaysTrueMintCode
+
+alwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
+alwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMint
 
 main :: IO ()
 main = do
   writeCodeToFile PlutusScriptV3 "./assets/V3/alwaysTrueMint.plutus" alwaysTrueMintCode
+  let ccScriptCodeAplied = ccScriptCode `unsafeApplyCode` liftCodeDef (V3.toBuiltinData alwaysTrueCurrencySymbol)
+  putStrLn $ "Applied currency symbol " ++ show alwaysTrueCurrencySymbol ++ " to ccScriptCode"
+  writeCodeToFile PlutusScriptV3 "./assets/V3/ccScript.plutus" ccScriptCodeAplied
   writeCodeToFile PlutusScriptV3 "./assets/V3/lockingScript.plutus" lockingScriptCode
   putStrLn "done!"

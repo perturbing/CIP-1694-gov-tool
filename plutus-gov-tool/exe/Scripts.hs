@@ -7,7 +7,8 @@
 {-# OPTIONS_GHC -O0                             #-}
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas   #-}
 {-# OPTIONS_GHC -fno-omit-interface-pragmas     #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas       #-}
+{-# HLINT ignore "Use null"                     #-}
 
 module Scripts where
 
@@ -30,7 +31,8 @@ import PlutusTx.List
       map,
       elem,
       foldr,
-      filter, find )
+      filter, 
+      find )
 import PlutusTx.Builtins
     ( BuiltinByteString, Integer, error, BuiltinData)
 import PlutusTx.AssocMap (member)
@@ -60,6 +62,27 @@ import PlutusTx.Numeric
     ( AdditiveGroup(..),
       AdditiveSemigroup (..) )
 
+-- Helper function to wrap a script to error on the return of a False.
+{-# INLINABLE wrapThreeArgs #-}
+wrapThreeArgs :: ( UnsafeFromData a
+             , UnsafeFromData b)
+             => (a -> b -> ScriptContext -> Bool)
+             -> (BuiltinData -> BuiltinData -> BuiltinData -> ())
+wrapThreeArgs f a b ctx =
+  check $ f
+      (unsafeFromBuiltinData a)
+      (unsafeFromBuiltinData b)
+      (unsafeFromBuiltinData ctx)
+
+{-# INLINABLE wrapTwoArgs #-}
+wrapTwoArgs  :: (UnsafeFromData a)
+                => (a -> ScriptContext -> Bool)
+                -> (BuiltinData -> BuiltinData -> ())
+wrapTwoArgs f a ctx =
+  check $ f
+      (unsafeFromBuiltinData a)
+      (unsafeFromBuiltinData ctx)
+
 -- [General notes on this file]
 -- This file contains two plutus scripts, the CC membership script and the locking script. 
 -- The CC membership script is parameterized by the currency symbol of an NFT, and evaluates 
@@ -79,8 +102,12 @@ ccScript symbol _ ctx = any (\value -> symbol `member` value) txInputsValues
         -- The list of value maps of the transaction inputs.
         txInputsValues = map (getValue . txOutValue . txInInfoResolved) txInputs
 
--- ccScriptCode :: CompiledCode (CurrencySymbol -> () -> ScriptContext -> Bool)
--- ccScriptCode = $$(compile [|| ccScript ||])
+{-# INLINABLE mkWrappedCCScript #-}
+mkWrappedCCScript :: BuiltinData -> BuiltinData -> BuiltinData -> ()
+mkWrappedCCScript = wrapThreeArgs ccScript
+
+ccScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
+ccScriptCode = $$(compile [|| mkWrappedCCScript ||])
 
 -- X509 is a data type that represents a commitment to an X509 certificate.
 -- It is given by the hash of the public key that is in the certificate.
@@ -167,25 +194,23 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
 
 {-# INLINABLE wrappedLockingScript #-}
 wrappedLockingScript :: BuiltinData -> BuiltinData -> BuiltinData -> ()
-wrappedLockingScript = wrapSpending lockingScript
+wrappedLockingScript = wrapThreeArgs lockingScript
 
 lockingScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
 lockingScriptCode = $$(compile [|| wrappedLockingScript ||])
 
 -- testing purposes
 
+{-# INLINABLE alwaysTrueMint #-}
 alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
 alwaysTrueMint _ _ = True
 
+{-# INLINABLE wrappedAlwaysTrueMint #-}
+wrappedAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
+wrappedAlwaysTrueMint = wrapTwoArgs alwaysTrueMint
+
 alwaysTrueMintCode :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
 alwaysTrueMintCode = $$(compile [|| alwaysTrueMint ||])
-
--- {-# INLINABLE wrappedAlwaysTrueMint #-}
--- wrappedAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
--- wrappedAlwaysTrueMint = wrapCertifying alwaysTrueMint
-
--- alwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
--- alwaysTrueMintCode = $$(compile [|| wrappedAlwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 
@@ -201,22 +226,4 @@ txSignedBy TxInfo{txInfoSignatories} k = case find (k ==) txInfoSignatories of
 findTxInByTxOutRef :: TxOutRef -> TxInfo -> Maybe TxInInfo
 findTxInByTxOutRef outRef txInfo = find (\txIn -> txInInfoOutRef txIn == outRef) (txInfoInputs txInfo)
 
-{-# INLINABLE wrapSpending #-}
-wrapSpending :: ( UnsafeFromData a
-                , UnsafeFromData b)
-              => (a -> b -> ScriptContext -> Bool)
-              -> (BuiltinData -> BuiltinData -> BuiltinData -> ())
-wrapSpending f a b ctx =
-  check $ f
-      (unsafeFromBuiltinData a)
-      (unsafeFromBuiltinData b)
-      (unsafeFromBuiltinData ctx)
 
-{-# INLINABLE wrapCertifying #-}
-wrapCertifying  :: (UnsafeFromData a)
-                => (a -> ScriptContext -> Bool)
-                -> (BuiltinData -> BuiltinData -> ())
-wrapCertifying f a ctx =
-  check $ f
-      (unsafeFromBuiltinData a)
-      (unsafeFromBuiltinData ctx)
