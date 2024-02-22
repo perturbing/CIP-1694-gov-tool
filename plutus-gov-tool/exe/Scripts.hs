@@ -151,6 +151,8 @@ makeIsDataIndexed ''CCScriptDatum [('CCScriptDatum, 0)]
 data CCScriptRedeemer = Delegate | Resign X509 | Recover
 makeIsDataIndexed ''CCScriptRedeemer [('Delegate, 0), ('Resign, 1), ('Recover, 2)]
 
+-- NOTE TO SELF: we can also resign via an index, making the redeemer smaller.
+
 -- [Locking script]
 -- The locking script is parameterized by the datum and redeemer types as above.
 -- This script checks that for a given action in the redeemer (Delegate, Resign X509, Recover) the
