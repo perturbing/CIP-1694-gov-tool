@@ -21,3 +21,4 @@ executable write-scripts
     , cardano-api
     , serialise
     , bytestring
+    , aeson
