@@ -100,7 +100,7 @@ wrapTwoArgs f a ctx =
 -- This script just checks that the hard-coded currency symbol of the NFT is 
 -- in an input of the transaction.
 {-# INLINABLE ccScript #-}
-ccScript :: CurrencySymbol -> () -> ScriptContext -> Bool
+ccScript :: CurrencySymbol -> BuiltinData -> ScriptContext -> Bool
 ccScript symbol _ ctx = any (\value -> symbol `member` value) txInputsValues
     where
         -- The list of transaction inputs being consumed in this transaction.
