@@ -16,7 +16,7 @@ executable write-scripts
     , base >=4.2 && < 5
     , plutus-tx 
     , plutus-core >= 1.21.0.0
-    , plutus-ledger-api
+    , plutus-ledger-api 
     , plutus-tx-plugin
     , cardano-api
     , serialise
