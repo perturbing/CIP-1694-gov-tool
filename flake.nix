@@ -109,7 +109,7 @@
                cardano-cli address build --testnet-magic 42 --payment-verification-key-file utxo1.vkey > utxo1.addr
                cardano-cli conway transaction build --testnet-magic 42 \
                 --tx-in $(cardano-cli query utxo --address $(cat utxo1.addr) --testnet-magic 42 --out-file  /dev/stdout | jq -r 'keys[0]') \
-                --tx-out addr_test1vzne3ad3s9md4ts58jpnv3ftkttpk3wjlkp463dh0tt4jnc3cvm5t+1000000000 \
+                --tx-out addr_test1vzlcvjjxlcrkfmlxm0jjlzymppp3043ugvudqjpewn6r24q7re5vt+1000000000 \
                 --change-address $(cat utxo1.addr) \
                 --out-file tx
                cardano-cli transaction sign --tx-body-file tx --signing-key-file utxo1.skey --testnet-magic 42 --out-file tx.signed
