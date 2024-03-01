@@ -27,7 +27,8 @@ export default function Home() {
   const [csrData, setCSRData] = useState({
     ownCert: '',
     csr: '',
-    decodedData: ''
+    decodedData: '',
+    validity: 0
   });
 
   const openOpenSSLKey = async () => {

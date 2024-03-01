@@ -14,6 +14,7 @@ import {
 } from "react";
 
 export type AppState = {
+    openSSLCerts?: string;
     openSSLPrivKey?: string;
     openSSLPubKey?: string;
     publicKey?: string;
