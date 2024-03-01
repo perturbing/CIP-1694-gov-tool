@@ -6,7 +6,7 @@ import Verify from "@/components/Verify"
 import Deploy from "@/components/Deploy"
 import { AppStateContext } from "./_app"
 
-import { processPemKey, callOpenSSL, getShortenedKey, copyToClipboard } from "@/utils/utils"
+import { processPemKey, callOpenSSL, getShortenedKey, copyToClipboard, callCardanoCli, toCardanoCliPrivKey, toCardanoCliPubKey } from "@/utils/utils"
 
 export default function Home() {
   // State to track the active page
@@ -31,6 +31,8 @@ export default function Home() {
               const pk = processPemKey(data.result,"302a300506032b6570032100")
               const privRaw = processPemKey(privOpenSSL as string,"302e020100300506032b657004220420")
               const privKey = C.PrivateKey.from_normal_bytes(fromHex(privRaw)).to_bech32()
+              const cPrivKey = toCardanoCliPrivKey(privRaw)
+              const cPubKey = toCardanoCliPubKey(pk)
               // load private key into lucid for signing.
               appState.lucid?.selectWalletFromPrivateKey(privKey)
               setAppState({
@@ -39,7 +41,9 @@ export default function Home() {
                 openSSLPubKey: data.result,
                 privateKey: privKey,
                 publicKey: pk,
-                publicKeyHash: toHex(C.hash_blake2b224(fromHex(pk)))
+                publicKeyHash: toHex(C.hash_blake2b224(fromHex(pk))),
+                cardanoPrivKey: cPrivKey,
+                cardanoPubKey: cPubKey
               })
             })
             .catch(error => {
@@ -54,7 +58,7 @@ export default function Home() {
 
   const disconnectOpenSSLKey = async () => {
     const newLucid = await Lucid.new()
-    console.log()
+    console.log(appState)
     setAppState({
       ...appState,
       openSSLPrivKey: undefined,
@@ -70,7 +74,7 @@ export default function Home() {
       case "home":
         return <Landing />;
       case "deploy":
-        return <Deploy />;
+        return <Deploy deployedState={appState.deployed} />;
       case "verify":
         return <Verify />;
       default:

@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { execSync } from 'child_process';
 
 // export default function handler(req, res) {
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default function handlerOpenSSL(req: NextApiRequest, res: NextApiResponse) {
   return new Promise<void>(async (resolve, reject) => {
     const requestType = req.body.type; // Type of OpenSSL request
     const inputData = req.body.data; // Input data for the OpenSSL command

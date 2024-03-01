@@ -16,6 +16,24 @@ export const processPemKey = (pemKey: string, prefix: string): string => {
     }
 };
 
+export const toCardanoCliPrivKey = (privKey: string): string => {
+    const prefix = '{"type": "PaymentSigningKeyShelley_ed25519","description": "Payment Signing Key","cborHex": "5820'
+    const suffix = '"}';
+    return prefix + privKey + suffix;
+};
+
+export const toCardanoCliPubKey = (pubKey: string): string => {
+  const prefix = '{"type": "PaymentVerificationKeyShelley_ed25519","description": "Payment Verification Key","cborHex": "5820'
+  const suffix = '"}';
+  return prefix + pubKey + suffix;
+};
+
+export const toCardanoV3Script = (pubKey: string): string => {
+  const prefix = '{"type": "PlutusScriptV3","description": "","cborHex": "'
+  const suffix = '"}';
+  return prefix + pubKey + suffix;
+};
+
 export const callOpenSSL = async (requestType, inputData, errorMsg) => {
     try {
       const response = await fetch('/api/openssl', {
@@ -35,6 +53,27 @@ export const callOpenSSL = async (requestType, inputData, errorMsg) => {
       // You could also rethrow the error to handle it outside, or handle it here
       throw error;
     }
+};
+
+export const callCardanoCli = async (requestType, inputData, errorMsg) => {
+  try {
+    const response = await fetch('/api/cardano-cli', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type: requestType, data: inputData}),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      return data;
+    } else {
+      throw new Error( "Error calling API: " + errorMsg );
+    }
+  } catch (error) {
+    // You could also rethrow the error to handle it outside, or handle it here
+    throw error;
+  }
 };
 
 export const getShortenedKey = (key:string) => {

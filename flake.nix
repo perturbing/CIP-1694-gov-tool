@@ -104,6 +104,19 @@
                bash "$REPO_ROOT/local-testnet/scripts/mkX509Cert.sh" $1 $2 $3 $4
             '')
 
+            (pkgs.writeShellScriptBin "payOrchestrator" ''
+               cd $REPO_ROOT/local-testnet/example/utxo-keys
+               cardano-cli address build --testnet-magic 42 --payment-verification-key-file utxo1.vkey > utxo1.addr
+               cardano-cli conway transaction build --testnet-magic 42 \
+                --tx-in $(cardano-cli query utxo --address $(cat utxo1.addr) --testnet-magic 42 --out-file  /dev/stdout | jq -r 'keys[0]') \
+                --tx-out addr_test1vzne3ad3s9md4ts58jpnv3ftkttpk3wjlkp463dh0tt4jnc3cvm5t+1000000000 \
+                --change-address $(cat utxo1.addr) \
+                --out-file tx
+               cardano-cli transaction sign --tx-body-file tx --signing-key-file utxo1.skey --testnet-magic 42 --out-file tx.signed
+               cardano-cli transaction submit --tx-file tx.signed --testnet-magic 42
+               rm tx tx.signed
+            '')
+
           ];
           shell.withHoogle = true;
 
