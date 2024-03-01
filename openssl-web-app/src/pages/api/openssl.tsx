@@ -36,6 +36,11 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       case 'signCSR':
         command = `openssl x509 -days ${inputData.validity} -req -in <(echo "${inputData.csr}") -CA <(echo "${inputData.ownCert}") -CAkey <(echo "${inputData.privKey}")`;
         break;
+      case 'verifyX509':
+        // command = `echo "${inputData.toCheckCert}"`; 
+        command = `openssl verify -CAfile <(echo "${inputData.caCert}") <(echo "${inputData.toCheckCert}") | grep OK`;
+        // command = `openssl x509 -in <(echo "${inputData.toCheckCert}") -noout -text`;
+        break;
       default:
         return res.status(400).json({ error: 'Invalid request type' });
     }

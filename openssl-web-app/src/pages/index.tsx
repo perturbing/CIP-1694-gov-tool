@@ -30,6 +30,12 @@ export default function Home() {
     decodedData: '',
     validity: 0
   });
+  const [openSSLCerts, setOpenSSLCerts] = useState({
+    caCert: '',
+    caCertHash: 'Please open the certificate of the CA first.',
+    toCheckCert: '',
+    isValidCert: false
+  });
 
   const openOpenSSLKey = async () => {
     const fileInput = document.createElement('input');
@@ -84,6 +90,10 @@ export default function Home() {
     setCSRData(prev => ({ ...prev, [field]: value }));
   }
 
+  const handleCertsChange = (field:string,value:string) => {
+    setOpenSSLCerts(prev => ({ ...prev, [field]: value }));
+  }
+
   // Function to render the active page component
   const renderActivePage = () => {
     switch (activePage) {
@@ -96,7 +106,7 @@ export default function Home() {
       case "issue":
         return <IssueX509Child csr={csrData} setCSR={handleCSRChange} privKey={appState.openSSLPrivKey} />;
       case "verify":
-        return <VerifyX509 />;
+        return <VerifyX509 certs={openSSLCerts} setCerts={handleCertsChange} />;
       default:
         return <HomeX509 />;
     }
