@@ -2,14 +2,21 @@
 {-# LANGUAGE NamedFieldPuns                     #-}
 {-# LANGUAGE DataKinds                          #-}
 {-# LANGUAGE NoImplicitPrelude                  #-}
-{-# LANGUAGE Strict                             #-}
-{-# OPTIONS_GHC -O0                             #-}
+{-# LANGUAGE ViewPatterns                       #-}
+
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas   #-}
 {-# OPTIONS_GHC -fno-omit-interface-pragmas     #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use null" #-}
+{-# OPTIONS_GHC -fno-full-laziness              #-}
+{-# OPTIONS_GHC -fno-spec-constr                #-}
+{-# OPTIONS_GHC -fno-specialise                 #-}
+{-# OPTIONS_GHC -fno-strictness                 #-}
+{-# OPTIONS_GHC -fno-unbox-strict-fields        #-}
+{-# OPTIONS_GHC -fno-unbox-small-strict-fields  #-}
 
-module ScriptsV2 where
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas       #-}
+{-# HLINT ignore "Use null"                     #-}
+
+module Scripts where
 
 import PlutusTx.Prelude
     ( (.),
@@ -22,6 +29,7 @@ import PlutusTx.Prelude
       Maybe (..), 
       maybe, 
       (<$>), 
+      check,
       (/=), 
       modulo )
 import PlutusTx.List
@@ -29,11 +37,12 @@ import PlutusTx.List
       map,
       elem,
       foldr,
-      filter, find )
+      filter, 
+      find )
 import PlutusTx.Builtins
-    ( BuiltinByteString, Integer, error, BuiltinData )
+    ( BuiltinByteString, Integer, error, BuiltinData)
 import PlutusTx.AssocMap (member)
-import PlutusLedgerApi.V2
+import PlutusLedgerApi.V3
     ( TxOutRef(..),
       ScriptContext(..),
       CurrencySymbol,
@@ -43,9 +52,10 @@ import PlutusLedgerApi.V2
       TxOut (..),
       Value (..),
       PubKeyHash,
-      DCert (..), 
+      TxCert (..), 
       ToData (..), 
       Datum (..), 
+      UnsafeFromData (..),
       OutputDatum (..))
 import PlutusTx
     ( compile,
@@ -58,6 +68,27 @@ import PlutusTx.Numeric
     ( AdditiveGroup(..),
       AdditiveSemigroup (..) )
 
+-- Helper function to wrap a script to error on the return of a False.
+{-# INLINABLE wrapThreeArgs #-}
+wrapThreeArgs :: ( UnsafeFromData a
+             , UnsafeFromData b)
+             => (a -> b -> ScriptContext -> Bool)
+             -> (BuiltinData -> BuiltinData -> BuiltinData -> ())
+wrapThreeArgs f a b ctx =
+  check $ f
+      (unsafeFromBuiltinData a)
+      (unsafeFromBuiltinData b)
+      (unsafeFromBuiltinData ctx)
+
+{-# INLINABLE wrapTwoArgs #-}
+wrapTwoArgs  :: (UnsafeFromData a)
+                => (a -> ScriptContext -> Bool)
+                -> (BuiltinData -> BuiltinData -> ())
+wrapTwoArgs f a ctx =
+  check $ f
+      (unsafeFromBuiltinData a)
+      (unsafeFromBuiltinData ctx)
+
 -- [General notes on this file]
 -- This file contains two plutus scripts, the CC membership script and the locking script. 
 -- The CC membership script is parameterized by the currency symbol of an NFT, and evaluates 
@@ -69,7 +100,7 @@ import PlutusTx.Numeric
 -- This script just checks that the hard-coded currency symbol of the NFT is 
 -- in an input of the transaction.
 {-# INLINABLE ccScript #-}
-ccScript :: CurrencySymbol -> () -> ScriptContext -> Bool
+ccScript :: CurrencySymbol -> BuiltinData -> ScriptContext -> Bool
 ccScript symbol _ ctx = any (\value -> symbol `member` value) txInputsValues
     where
         -- The list of transaction inputs being consumed in this transaction.
@@ -77,8 +108,12 @@ ccScript symbol _ ctx = any (\value -> symbol `member` value) txInputsValues
         -- The list of value maps of the transaction inputs.
         txInputsValues = map (getValue . txOutValue . txInInfoResolved) txInputs
 
-ccScriptCodeV2 :: CompiledCode (CurrencySymbol -> () -> ScriptContext -> Bool)
-ccScriptCodeV2 = $$(compile [|| ccScript ||])
+{-# INLINABLE mkWrappedCCScript #-}
+mkWrappedCCScript :: BuiltinData -> BuiltinData -> BuiltinData -> ()
+mkWrappedCCScript = wrapThreeArgs ccScript
+
+ccScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
+ccScriptCode = $$(compile [|| mkWrappedCCScript ||])
 
 -- X509 is a data type that represents a commitment to an X509 certificate.
 -- It is given by the hash of the public key that is in the certificate.
@@ -116,6 +151,8 @@ makeIsDataIndexed ''CCScriptDatum [('CCScriptDatum, 0)]
 data CCScriptRedeemer = Delegate | Resign X509 | Recover
 makeIsDataIndexed ''CCScriptRedeemer [('Delegate, 0), ('Resign, 1), ('Recover, 2)]
 
+-- NOTE TO SELF: we can also resign via an index, making the redeemer smaller.
+
 -- [Locking script]
 -- The locking script is parameterized by the datum and redeemer types as above.
 -- This script checks that for a given action in the redeemer (Delegate, Resign X509, Recover) the
@@ -152,7 +189,7 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
                     Just txOut  -> let newTxOutput = txOut { txOutDatum = (OutputDatum . Datum . toBuiltinData) newDatum }
                                    in newTxOutput `elem` txInfoOutputs txInfo
                     Nothing     -> False
-                notWitnessed = txInfoDCert txInfo == []
+                notWitnessed = txInfoTxCerts txInfo == []
         Recover      -> checkMultiSig (recoveryX509s dtm)
         where
             txInfo = scriptContextTxInfo ctx
@@ -163,14 +200,25 @@ lockingScript dtm red ctx = case scriptContextPurpose ctx of
                     numberOfSignatures = length $ filter (txSignedBy txInfo . pubKeyHash) list
     _                 -> False
 
-lockingScriptCodeV2 :: CompiledCode (CCScriptDatum -> CCScriptRedeemer -> ScriptContext -> Bool)
-lockingScriptCodeV2 = $$(compile [|| lockingScript ||])
+{-# INLINABLE wrappedLockingScript #-}
+wrappedLockingScript :: BuiltinData -> BuiltinData -> BuiltinData -> ()
+wrappedLockingScript = wrapThreeArgs lockingScript
 
+lockingScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
+lockingScriptCode = $$(compile [|| wrappedLockingScript ||])
+
+-- testing purposes
+
+{-# INLINABLE alwaysTrueMint #-}
 alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
 alwaysTrueMint _ _ = True
 
-alwaysTrueMintCodeV2 :: CompiledCode (BuiltinData -> ScriptContext -> Bool)
-alwaysTrueMintCodeV2 = $$(compile [|| alwaysTrueMint ||])
+{-# INLINABLE wrappedAlwaysTrueMint #-}
+wrappedAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
+wrappedAlwaysTrueMint = wrapTwoArgs alwaysTrueMint
+
+alwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
+alwaysTrueMintCode = $$(compile [|| wrappedAlwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 
