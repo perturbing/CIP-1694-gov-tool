@@ -12,6 +12,59 @@ export default function Home() {
   // State to track the active page
   const [activePage, setActivePage] = useState("home")
   const { appState, setAppState } = useContext(AppStateContext)
+  const [newOwner, setNewOwner] = useState({ certificate: '', pubkey: '' });
+  const [newUser, setNewUser] = useState({ certificate: '', pubkey: '' });
+
+  const handleAddOwner = (field:string, value:string) => {
+    setNewOwner(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddUser = (field:string,value:string) => {
+    setNewUser(prev => ({ ...prev, [field]: value }));
+  };
+
+  const emptyOnchainCertList = {
+    pubkey: "",
+    pubkeyHash: "",
+    certificate: "",
+    certificateHash: "",
+  }
+
+  const [ownerList, setOwnerList] = useState([])
+
+  const addOwner = () => {
+    setOwnerList([...ownerList, emptyOnchainCertList])
+  }
+
+  const updateOwner = (index, newData) => {
+    let newOwnerList = [...ownerList]
+    newOwnerList[index] = { ...newOwnerList[index], ...newData }
+    setOwnerList(newOwnerList)
+  }
+
+  const removeOwner = (index) => {
+    let newOwnerList = [...ownerList]
+    newOwnerList.splice(index, 1)
+    setOwnerList(newOwnerList)
+  }
+
+  const [userList, setUserList] = useState([])
+
+  const addUser = () => {
+    setUserList([...userList, emptyOnchainCertList])
+  }
+
+  const updateUser = (index, newData) => {
+    let newUserList = [...userList]
+    newUserList[index] = { ...newUserList[index], ...newData }
+    setUserList(newUserList)
+  }
+
+  const removeUser = (index) => {
+    let newUserList = [...userList]
+    newUserList.splice(index, 1)
+    setUserList(newUserList)
+  }
 
   const openOpenSSLKey = async () => {
     const fileInput = document.createElement('input')
@@ -58,7 +111,6 @@ export default function Home() {
 
   const disconnectOpenSSLKey = async () => {
     const newLucid = await Lucid.new()
-    console.log(appState)
     setAppState({
       ...appState,
       openSSLPrivKey: undefined,
@@ -74,13 +126,35 @@ export default function Home() {
       case "home":
         return <Landing />;
       case "deploy":
-        return <Deploy deployedState={appState.deployed} />;
+        return (
+          <Deploy
+            newOwner={newOwner}
+            handleAddOwner={handleAddOwner}
+            newUser={newUser}
+            handleAddUser={handleAddUser}
+            deployedState={appState.deployed}
+            owners={ownerList}
+            users={userList}
+            addOwner={addOwner}
+            updateOwner={updateOwner}
+            removeOwner={removeOwner}
+            addUser={addUser}
+            updateUser={updateUser}
+            removeUser={removeUser}
+            orchestratorAddress={appState.orchestratorAddress}
+            ccNftPolicyId={appState.ccNftPolicyId}
+            alwaysTrueScript={appState.alwaysTrueScript}
+            lockAddress={appState.lockAddress}
+            privKey= {appState.cardanoPrivKey}
+          />
+        );
       case "verify":
         return <Verify />;
       default:
         return <Home />;
     }
   };
+  
 
   return (
     <div>
