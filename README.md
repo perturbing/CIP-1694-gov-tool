@@ -1,4 +1,4 @@
-# CIP-1694-gov-tool
+# CC-IDENTITY-POC
 A MVP implementation of a CIP 1694 governance tool for managing an organisation in the CC.
 
 ### Deploy/purge local testnet
