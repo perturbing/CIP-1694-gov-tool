@@ -34,11 +34,14 @@ import qualified PlutusLedgerApi.V1 as PlutusV1
 
 import ColdScripts                
   ( alwaysTrueMintCode
-  , delegationLockingScriptCode
+  , coldLockScriptCode
   , coldCredentialScriptCode
   , X509 (..)
   , ColdLockScriptDatum (..)
   , ColdLockScriptRedeemer (..))
+import HotScripts
+  ( hotCredentialScriptCode
+  , hotLockScriptCode)
 
 import Data.Aeson             (Value)
 import qualified Data.ByteString.Char8 as BS8
@@ -71,11 +74,20 @@ printDataToJSON = putStrLn . BS8.unpack . prettyPrintJSON . dataToJSON
 main :: IO ()
 main = do
   writeCodeToFile PlutusScriptV3 "./assets/V3/alwaysTrueMint.plutus" alwaysTrueMintCode
-  let coldCredentialScriptCodeAplied = coldCredentialScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData alwaysTrueCurrencySymbol)
+  -- setting up the cold credential and locking scripts 
+  let coldCredentialScriptCodeApplied = coldCredentialScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData alwaysTrueCurrencySymbol)
   putStrLn $ "Applied currency symbol " ++ show alwaysTrueCurrencySymbol ++ " to coldCredentialScriptCode"
   -- writing cold side to file
-  writeCodeToFile PlutusScriptV3 "./assets/V3/coldCredentialScript.plutus" coldCredentialScriptCodeAplied
-  writeCodeToFile PlutusScriptV3 "./assets/V3/delegationLockingScript.plutus" delegationLockingScriptCode
+  writeCodeToFile PlutusScriptV3 "./assets/V3/coldCredentialScript.plutus" coldCredentialScriptCodeApplied
+  writeCodeToFile PlutusScriptV3 "./assets/V3/coldLockScript.plutus" coldLockScriptCode
+  -- setting up the hot credential and locking scripts
+  let hotCredentialScriptCodeApplied = hotCredentialScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData alwaysTrueCurrencySymbol)
+  putStrLn $ "Applied currency symbol " ++ show alwaysTrueCurrencySymbol ++ " to hotCredentialScriptCode"
+  let hotLockScriptCodeApplied = hotLockScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData alwaysTrueCurrencySymbol)
+  putStrLn $ "Applied currency symbol " ++ show alwaysTrueCurrencySymbol ++ " to hotLockScriptCode"
+  -- writing hot side to file
+  writeCodeToFile PlutusScriptV3 "./assets/V3/hotCredentialScript.plutus" hotCredentialScriptCodeApplied
+  writeCodeToFile PlutusScriptV3 "./assets/V3/hotLockScript.plutus" hotLockScriptCodeApplied
   -- printDataToJSON datum
   writeFile "./assets/datums/initDatum.json" (BS8.unpack . prettyPrintJSON $ dataToJSON initDatum)
   writeFile "./assets/datums/resignChild4Datum.json" (BS8.unpack . prettyPrintJSON $ dataToJSON resignChild4Datum)

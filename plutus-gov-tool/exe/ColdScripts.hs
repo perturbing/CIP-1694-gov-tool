@@ -3,6 +3,7 @@
 {-# LANGUAGE DataKinds                          #-}
 {-# LANGUAGE NoImplicitPrelude                  #-}
 {-# LANGUAGE ViewPatterns                       #-}
+{-# LANGUAGE Strict                             #-}
 
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas   #-}
 {-# OPTIONS_GHC -fno-omit-interface-pragmas     #-}
@@ -90,10 +91,11 @@ wrapTwoArgs f a ctx =
       (unsafeFromBuiltinData ctx)
 
 -- [General notes on this file]
--- This file contains two plutus scripts, the CC cold credential script and a locking script. 
--- The CC cold credential script is parameterized by the currency symbol of an NFT, and evaluates 
+-- This file contains two plutus scripts, the script that will be used as the CC cold credential,
+-- called 'coldCredentialScript'. The other script is a spending script called `coldLockScript`.
+-- The CC cold credential script is parameterized by the currency symbol of a "Cold NFT", and evaluates 
 -- true if the NFT is in any spending input of the transaction. 
--- The locking script governs the unlocking of this NFT, and therefore when and how
+-- The spending script governs the unlocking of this NFT, and therefore when and how
 -- the cold CC credential witnesses a certificate that issues a hot voting credential.
 
 -- [CC cold credential script]
@@ -101,7 +103,9 @@ wrapTwoArgs f a ctx =
 -- in any spending input of the transaction.
 {-# INLINABLE coldCredentialScript #-}
 coldCredentialScript :: CurrencySymbol -> BuiltinData -> ScriptContext -> Bool
-coldCredentialScript symbol _ ctx = any (\value -> symbol `member` value) txInputsValues
+coldCredentialScript symbol _ ctx =  case scriptContextPurpose ctx of
+    Certifying _ _  -> any (\value -> symbol `member` value) txInputsValues
+    _               -> False
     where
         -- The list of transaction inputs being consumed in this transaction.
         txInputs = txInfoInputs . scriptContextTxInfo $ ctx
@@ -129,11 +133,12 @@ instance Eq X509 where
     {-# INLINABLE (==) #-}
     (X509 pkh1 hash1) == (X509 pkh2 hash2) = pkh1 == pkh2 && hash1 == hash2
 
+-- [Locking script datum]
 -- ColdLockScriptDatum is the datum type of the CC NFT locking script.
 -- It is given by a CA x509 certificate and two lists of X509 certificates, the recovery and delegete certificates.
 -- The caX509s has no onchain function other than to be a commitment to the CA certificate.
--- The recovery certificates have full control over the script address, while the delegate certificates
--- can witness the unlocked UTxO to issue a hot CC crendential certificate (without any state transitions).
+-- The recovery certificates have full control over the script, while the delegate certificates
+-- can only witness the UTxO to issue a hot CC crendential certificate (without any state transitions).
 -- The delegate certificates can also resign their power by removing themselves from the list.
 -- Both list need a majority of signatures to do anything.
 data ColdLockScriptDatum = ColdLockScriptDatum {
@@ -143,36 +148,39 @@ data ColdLockScriptDatum = ColdLockScriptDatum {
 }
 makeIsDataIndexed ''ColdLockScriptDatum [('ColdLockScriptDatum, 0)]
 
--- [Locking script actions]
+-- [Cold locking script actions]
 -- This is the redeemer type of the locking script.
--- The delegate action is used to witness a transaction when a voter CC certificate needs to be issued.
+-- The delegate action is used to witness the locked UTxO when a hot CC credential needs to be issued.
 -- The resign X509 action is used to resign a non recovery CC certificate.
--- The recover action is there for the recover certificates to unlock the UTxO for any reason. This
+-- The recover action is for the recover certificates to unlock the UTxO for any reason. This
 -- could for example be to rotate the encoded recover certificates, remove a compromised certificate, or
--- unlock the NFT to be able to lock it elsewhere (e.g. to a new updated CC membership script).
+-- unlock the NFT to be able to lock it elsewhere (e.g. to a new updated CC locking script).
 data ColdLockScriptRedeemer = Delegate | Resign X509 | Recover
 makeIsDataIndexed ''ColdLockScriptRedeemer [('Delegate, 0), ('Resign, 1), ('Recover, 2)]
 
--- [delegation Locking script]
--- The locking script is parameterized by the datum and redeemer types as above.
+-- [Cold locking script]
+-- The locking script takes in the datum and redeemer types as above.
 -- This script checks that for a given action in the redeemer (Delegate, Resign X509, Recover) the
 -- appropriate checks are made. These are as follows,
 --
 -- Delegate: checks that the transaction input being spent is also an output, while preserving
 -- the value and datum of this input (so there is no state transitions/movement of value).
 -- Also, this action makes sure the transaction is signed by a majority of the delegate certificates.
--- Effectively, this action witnesses control of the UTxO to be able to issue a voter CC certificate.
+-- Effectively, this action witnesses control of the UTxO to be able to issue a hot CC credential.
 -- Note that this action does not check that this certificate is witnessed!
 --
 -- Resign X509: checks that the provided X509 certificate from the redeemer is in the delegate list,
 -- that the transaction is signed by this X509 certificate, and the certificate is removed from the delegate list.
--- Lastly, this action also checks that the transaction does not witness any CC certificates. To prevent 
--- unauthorized satisfaction of the above CC membership script.
+-- Lastly, this action also checks that the transaction does not witness any certificates. To prevent 
+-- unauthorized satisfaction of the above cold CC credential script.
 --
 -- Recover: checks that the transaction is signed by a majority of the recovery certificates.
-{-# INLINABLE delegationLockingScript #-}
-delegationLockingScript :: ColdLockScriptDatum -> ColdLockScriptRedeemer -> ScriptContext -> Bool
-delegationLockingScript dtm red ctx = case scriptContextPurpose ctx of
+--
+-- Note that this script requires the datum to always be an inlined datum. This so that 
+-- off-chain tooling can parse the datum and verify X509 certificates against it.
+{-# INLINABLE coldLockScript #-}
+coldLockScript :: ColdLockScriptDatum -> ColdLockScriptRedeemer -> ScriptContext -> Bool
+coldLockScript dtm red ctx = case scriptContextPurpose ctx of
     Spending txOurRef -> case red of
         Delegate     -> checkTxOutPreservation && checkMultiSig (delegateX509s dtm)
             where
@@ -181,10 +189,10 @@ delegationLockingScript dtm red ctx = case scriptContextPurpose ctx of
                     Nothing     -> False
         Resign x509 -> memberX509 && txSignedX509 && removedX509 && notWitnessed
             where
-                memberX509 = x509 `elem` hotX509s'
+                memberX509 = x509 `elem` delegateX509s'
                 txSignedX509 = txSignedBy txInfo (pubKeyHash x509)
-                hotX509s' = delegateX509s dtm
-                newDatum = ColdLockScriptDatum (caX509 dtm) (recoveryX509s dtm) (filter (/= x509) hotX509s')
+                delegateX509s' = delegateX509s dtm
+                newDatum = ColdLockScriptDatum (caX509 dtm) (recoveryX509s dtm) (filter (/= x509) delegateX509s')
                 removedX509 = case ownInput of
                     Just txOut  -> let newTxOutput = txOut { txOutDatum = (OutputDatum . Datum . toBuiltinData) newDatum }
                                    in newTxOutput `elem` txInfoOutputs txInfo
@@ -200,12 +208,12 @@ delegationLockingScript dtm red ctx = case scriptContextPurpose ctx of
                     numberOfSignatures = length $ filter (txSignedBy txInfo . pubKeyHash) list
     _                 -> False
 
-{-# INLINABLE wrappedDelegationLockingScript #-}
-wrappedDelegationLockingScript :: BuiltinData -> BuiltinData -> BuiltinData -> ()
-wrappedDelegationLockingScript = wrapThreeArgs delegationLockingScript
+{-# INLINABLE wrappedColdLockScript #-}
+wrappedColdLockScript :: BuiltinData -> BuiltinData -> BuiltinData -> ()
+wrappedColdLockScript = wrapThreeArgs coldLockScript
 
-delegationLockingScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
-delegationLockingScriptCode = $$(compile [|| wrappedDelegationLockingScript ||])
+coldLockScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
+coldLockScriptCode = $$(compile [|| wrappedColdLockScript ||])
 
 -- testing purposes
 
