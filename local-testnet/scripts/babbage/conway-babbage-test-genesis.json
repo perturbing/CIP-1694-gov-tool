@@ -19,7 +19,7 @@
     "treasuryWithdrawal": 0.51
   },
   "committeeMinSize": 0,
-  "committeeMaxTermLength": 5000,
+  "committeeMaxTermLength": 5000000,
   "govActionLifetime": 10,
   "govActionDeposit": 1000000000,
   "dRepDeposit": 2000000,
@@ -32,6 +32,7 @@
   },
   "committee": {
     "members": {
+      "scriptHash-663b8083affdd9b3148c5a70791d8c922018aa2b50ee6c80ecd158bf":50000
     },
     "quorum": 0
   }
