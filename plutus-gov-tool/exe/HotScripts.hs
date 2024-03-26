@@ -61,6 +61,9 @@ import PlutusLedgerApi.V3
       Datum (..), 
       UnsafeFromData (..),
       OutputDatum (..))
+import PlutusLedgerApi.V3.Contexts (
+    findTxInByTxOutRef,
+    txSignedBy )
 import PlutusTx
     ( compile,
       CompiledCode,
@@ -71,41 +74,10 @@ import PlutusTx.Bool
 import PlutusTx.Numeric
     ( AdditiveGroup(..),
       AdditiveSemigroup (..) )
-import ColdScripts (ColdLockScriptDatum (..), X509 (..))
-
--- Helper function to wrap a script to error on the return of a False.
-{-# INLINABLE wrapTwoArgs #-}
-wrapTwoArgs  :: (UnsafeFromData a)
-                => (a -> ScriptContext -> Bool)
-                -> (BuiltinData -> BuiltinData -> ())
-wrapTwoArgs f a ctx =
-  check $ f
-      (unsafeFromBuiltinData a)
-      (unsafeFromBuiltinData ctx)
-
-{-# INLINABLE wrapThreeArgs #-}
-wrapThreeArgs :: ( UnsafeFromData a
-             , UnsafeFromData b)
-             => (a -> b -> ScriptContext -> Bool)
-             -> (BuiltinData -> BuiltinData -> BuiltinData -> ())
-wrapThreeArgs f a b ctx =
-  check $ f
-      (unsafeFromBuiltinData a)
-      (unsafeFromBuiltinData b)
-      (unsafeFromBuiltinData ctx)
-
-{-# INLINABLE wrapFourArgs #-}
-wrapFourArgs  :: (UnsafeFromData a
-                , UnsafeFromData b
-                , UnsafeFromData c)
-                => (a -> b -> c -> ScriptContext -> Bool)
-                -> (BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> ())
-wrapFourArgs f a b c ctx =
-  check $ f
-      (unsafeFromBuiltinData a)
-      (unsafeFromBuiltinData b)
-      (unsafeFromBuiltinData c)
-      (unsafeFromBuiltinData ctx)
+import ColdScripts 
+    ( ColdLockScriptDatum (..),
+      X509 (..))
+import Shared (wrapTwoArgs, wrapThreeArgs, wrapFourArgs)
 
 -- [General notes on this file]
 -- This file contains two plutus scripts, the first script will be used as the CC hot credential,
@@ -143,6 +115,11 @@ mkWrappedHotCredentialScript = wrapThreeArgs hotCredentialScript
 
 hotCredentialScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
 hotCredentialScriptCode = $$(compile [|| mkWrappedHotCredentialScript ||])
+
+-- | Find the reference input that contains a certain currency symbol.
+{-# INLINABLE findTxInByCurrencySymbolInRefUTxO #-}
+findTxInByCurrencySymbolInRefUTxO :: CurrencySymbol -> TxInfo -> Maybe TxInInfo
+findTxInByCurrencySymbolInRefUTxO symbol txInfo = find (\txIn -> symbol `member` (getValue . txOutValue . txInInfoResolved ) txIn) (txInfoReferenceInputs txInfo)
 
 -- [Hot locking script actions]
 -- This is the redeemer type of the locking script.
@@ -232,22 +209,3 @@ wrappedHotAlwaysTrueMint = wrapTwoArgs hotAlwaysTrueMint
 
 hotAlwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
 hotAlwaysTrueMintCode = $$(compile [|| wrappedHotAlwaysTrueMint ||])
-
--- remove the following when PlutusLedger.V3 exports these functions
-
--- | Check if a transaction is signed by the given public key hash.
-{-# INLINABLE txSignedBy #-}
-txSignedBy :: TxInfo -> PubKeyHash -> Bool
-txSignedBy TxInfo{txInfoSignatories} k = case find (k ==) txInfoSignatories of
-    Just _ -> True
-    _      -> False
-
--- | Find the input that spends the given output reference.
-{-# INLINABLE findTxInByTxOutRef #-}
-findTxInByTxOutRef :: TxOutRef -> TxInfo -> Maybe TxInInfo
-findTxInByTxOutRef outRef txInfo = find (\txIn -> txInInfoOutRef txIn == outRef) (txInfoInputs txInfo)
-
--- | Find the reference input that contains a certain currency sumbol.
-{-# INLINABLE findTxInByCurrencySymbolInRefUTxO #-}
-findTxInByCurrencySymbolInRefUTxO :: CurrencySymbol -> TxInfo -> Maybe TxInInfo
-findTxInByCurrencySymbolInRefUTxO symbol txInfo = find (\txIn -> symbol `member` (getValue . txOutValue . txInInfoResolved ) txIn) (txInfoReferenceInputs txInfo)

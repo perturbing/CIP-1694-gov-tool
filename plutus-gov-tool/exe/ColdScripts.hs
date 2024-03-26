@@ -60,6 +60,9 @@ import PlutusLedgerApi.V3
       Datum (..), 
       UnsafeFromData (..),
       OutputDatum (..))
+import PlutusLedgerApi.V3.Contexts (
+    findTxInByTxOutRef,
+    txSignedBy )
 import PlutusTx
     ( compile,
       CompiledCode,
@@ -70,27 +73,7 @@ import PlutusTx.Bool
 import PlutusTx.Numeric
     ( AdditiveGroup(..),
       AdditiveSemigroup (..) )
-
--- Helper function to wrap a script to error on the return of a False.
-{-# INLINABLE wrapThreeArgs #-}
-wrapThreeArgs :: ( UnsafeFromData a
-             , UnsafeFromData b)
-             => (a -> b -> ScriptContext -> Bool)
-             -> (BuiltinData -> BuiltinData -> BuiltinData -> ())
-wrapThreeArgs f a b ctx =
-  check $ f
-      (unsafeFromBuiltinData a)
-      (unsafeFromBuiltinData b)
-      (unsafeFromBuiltinData ctx)
-
-{-# INLINABLE wrapTwoArgs #-}
-wrapTwoArgs  :: (UnsafeFromData a)
-                => (a -> ScriptContext -> Bool)
-                -> (BuiltinData -> BuiltinData -> ())
-wrapTwoArgs f a ctx =
-  check $ f
-      (unsafeFromBuiltinData a)
-      (unsafeFromBuiltinData ctx)
+import Shared (wrapThreeArgs, wrapTwoArgs)
 
 -- [General notes on this file]
 -- This file contains two plutus scripts, the script that will be used as the CC cold credential,
@@ -233,17 +216,3 @@ wrappedColdAlwaysTrueMint = wrapTwoArgs coldAlwaysTrueMint
 
 coldAlwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
 coldAlwaysTrueMintCode = $$(compile [|| wrappedColdAlwaysTrueMint ||])
-
--- remove the following when PlutusLedger.V3 exports these functions
-
--- | Check if a transaction is signed by the given public key hash.
-{-# INLINABLE txSignedBy #-}
-txSignedBy :: TxInfo -> PubKeyHash -> Bool
-txSignedBy TxInfo{txInfoSignatories} k = case find (k ==) txInfoSignatories of
-    Just _ -> True
-    _      -> False
-
--- | Find the input that spends the given output reference.
-{-# INLINABLE findTxInByTxOutRef #-}
-findTxInByTxOutRef :: TxOutRef -> TxInfo -> Maybe TxInInfo
-findTxInByTxOutRef outRef txInfo = find (\txIn -> txInInfoOutRef txIn == outRef) (txInfoInputs txInfo)

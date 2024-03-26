@@ -11,7 +11,8 @@ executable write-scripts
   default-language: Haskell2010
   main-is: Main.hs
   other-modules:  ColdScripts,
-                  HotScripts
+                  HotScripts,
+                  Shared
   hs-source-dirs: exe
   build-depends:
     , base >=4.2 && < 5

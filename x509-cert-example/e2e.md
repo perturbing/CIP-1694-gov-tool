@@ -10,7 +10,7 @@ The CC scripts are comprised of 4 scripts, two locking scripts and two that only
 ```bash
 nix run .#plutus-gov-tool:exe:write-scripts
 ```
-This will compile and write the `alwaysTrueMint` script to disk and apply its currency symbol to the cold credential to constrain the `CC NFT`, after which this is also written to disk. Then, this same currency symbol is used for the `Vote NFT` and applied to the hot credential and the hot locking script. Besides the scripts, this will also write some basic datums and redeemers for the purpose of the example.
+This will compile and write the `coldAlwaysTrueMint` and `hotAlwaysTrueMint` scripts to disk and apply their currency symbol to the cold credential to constrain the `CC NFT`, after which this is also written to disk. Then, this same currency symbol is used for the `Vote NFT` and applied to the hot credential and the hot locking script. Besides the scripts, this will also write some basic datums and redeemers for the purpose of the example.
 
 Now that we have the scripts, we can determine the script hash of the Cold credential to hard-code it into the genesis configuration located in `/local-testnet/scripts/babbage/conway-babbage-test-genesis.json`. This can be done via
 ```bash
