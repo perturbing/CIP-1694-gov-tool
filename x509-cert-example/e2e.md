@@ -15,7 +15,7 @@ This will compile and write the `coldAlwaysTrueMint` and `hotAlwaysTrueMint` scr
 Now that we have the scripts, we can determine the script hash of the Cold credential to hard-code it into the genesis configuration located in `/local-testnet/scripts/babbage/conway-babbage-test-genesis.json`. This can be done via
 ```bash
 cardano-cli transaction policyid --script-file assets/V3/coldCredentialScript.plutus
-663b8083affdd9b3148c5a70791d8c922018aa2b50ee6c80ecd158bf
+df70d478148ea26f5bdb758a3e5d54b066b6c4668734735d1ed33d40
 ```
 
 ## Deploy local testnet
@@ -28,22 +28,6 @@ git rev af4384f9a98cbe6b98a799713ee1d14a1d479cc4
 Besides the node and cli, this shell also provides a few bash scripts to your path that will be used to showcase the CC scripts. One of those scripts is the `deploy-local-testnet` command, this will run the `scripts/babbage/mkfiles.sh` and run the nodes. In a new shell, you can verify that your testnet deployed by checking that
 ```bash
 cardano-cli conway query committee-state --testnet-magic 42
-{
-    "committee": {
-        "scriptHash-663b8083affdd9b3148c5a70791d8c922018aa2b50ee6c80ecd158bf": {
-            "expiration": 50000,
-            "hotCredsAuthStatus": {
-                "tag": "MemberNotAuthorized"
-            },
-            "nextEpochChange": {
-                "tag": "NoChangeExpected"
-            },
-            "status": "Active"
-        }
-    },
-    "epoch": 284,
-    "quorum": 0.0
-}
 ```
 shows our hard-coded cold committee member. Note that, thought this now an active CC member, the `CC NFT` is not yet locked. Also, in case you need to specify the node socket path, this is located in `/local-testnet/example/node-spo1/node.sock`.
 
@@ -69,10 +53,8 @@ cardano-cli query utxo --testnet-magic 42 --address $(cat orchestrator.addr)
 ```
 To mint the two NFT's (the `CC NFT` and `Vote NFT`) we first calculate the minting policy of the `alwaysTrueMint.plutus` script via
 ```bash
-cardano-cli transaction policyid --script-file ../../assets/V3/coldAlwaysTrueMint.plutus
-cardano-cli transaction policyid --script-file ../../assets/V3/hotAlwaysTrueMint.plutus
-68b70a5dac5f32c64076203e2b793e6c5352370f79c2fd6f4254433a
-53d886bc372fd703f36f8af2bfe42eb12885550703578ffff5d36b82
+cardano-cli transaction policyid --script-file ../../assets/V3/coldAlwaysTrueMint.plutus > coldAlwaysTrueMint.pol
+cardano-cli transaction policyid --script-file ../../assets/V3/hotAlwaysTrueMint.plutus > hotAlwaysTrueMint.pol
 ```
 Then we get the address of the two lock scripts via
 ```bash
@@ -84,10 +66,10 @@ When the scripts were written to disk, it also wrote the initial datums for the 
 cardano-cli conway transaction build --testnet-magic 42 \
  --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
  --tx-in-collateral "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
- --mint "1 68b70a5dac5f32c64076203e2b793e6c5352370f79c2fd6f4254433a.4343204e4654 + 1 53d886bc372fd703f36f8af2bfe42eb12885550703578ffff5d36b82.566f7465204e4654" \
- --tx-out $(cat coldLockScript.addr)+5000000+"1 68b70a5dac5f32c64076203e2b793e6c5352370f79c2fd6f4254433a.4343204e4654" \
+ --mint "1 $(cat coldAlwaysTrueMint.pol).4343204e4654 + 1 $(cat hotAlwaysTrueMint.pol).566f7465204e4654" \
+ --tx-out $(cat coldLockScript.addr)+5000000+"1 $(cat coldAlwaysTrueMint.pol).4343204e4654" \
  --tx-out-inline-datum-file ../../assets/datums/initColdLockScriptDatum.json \
- --tx-out $(cat hotLockScript.addr)+5000000+"1 53d886bc372fd703f36f8af2bfe42eb12885550703578ffff5d36b82.566f7465204e4654" \
+ --tx-out $(cat hotLockScript.addr)+5000000+"1 $(cat hotAlwaysTrueMint.pol).566f7465204e4654" \
  --tx-out-inline-datum-file ../../assets/datums/initHotLockScriptDatum.json \
  --change-address $(cat orchestrator.addr) \
  --mint-script-file ../../assets/V3/coldAlwaysTrueMint.plutus --mint-redeemer-value {} \
@@ -111,7 +93,7 @@ Now that we have hard-coded the cold credential in the list of CC members and lo
 cardano-cli conway query committee-state --testnet-magic 42
 {
     "committee": {
-        "scriptHash-663b8083affdd9b3148c5a70791d8c922018aa2b50ee6c80ecd158bf": {
+        "scriptHash-XXXXXX": {
             "expiration": 50000,
             "hotCredsAuthStatus": {
                 "tag": "MemberNotAuthorized"
@@ -139,7 +121,7 @@ cardano-cli conway transaction build --testnet-magic 42 \
  --tx-in-script-file ../../assets/V3/coldLockScript.plutus \
  --tx-in-inline-datum-present \
  --tx-in-redeemer-file ../../assets/redeemers/delegateRedeemer.json \
- --tx-out $(cat coldLockScript.addr)+5000000+"1 68b70a5dac5f32c64076203e2b793e6c5352370f79c2fd6f4254433a.4343204e4654" \
+ --tx-out $(cat coldLockScript.addr)+5000000+"1 $(cat coldAlwaysTrueMint.pol).4343204e4654" \
  --tx-out-inline-datum-file ../../assets/datums/initColdLockScriptDatum.json \
  --required-signer-hash $(cat ../CA/children/child-4/child-4.keyhash) \
  --required-signer-hash $(cat ../CA/children/child-5/child-5.keyhash) \
@@ -185,11 +167,11 @@ cardano-cli conway query committee-state --testnet-magic 42
 cardano-cli transaction policyid --script-file ../../assets/V3/hotCredentialScript.plutus
 {
     "committee": {
-        "scriptHash-663b8083affdd9b3148c5a70791d8c922018aa2b50ee6c80ecd158bf": {
+        "scriptHash-XXXXXXXX": {
             "expiration": 50000,
             "hotCredsAuthStatus": {
                 "contents": {
-                    "scriptHash": "499081bed6b3aedc22437365e13233ffeb0ade946ae81f94e13ee769"
+                    "scriptHash": "YYYYYYYY"
                 },
                 "tag": "MemberAuthorized"
             },

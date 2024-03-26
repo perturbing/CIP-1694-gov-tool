@@ -2,7 +2,6 @@
 {-# LANGUAGE DataKinds                          #-}
 {-# LANGUAGE NoImplicitPrelude                  #-}
 
-
 module Shared where
 
 import PlutusTx.Prelude
