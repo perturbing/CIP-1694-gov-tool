@@ -9,6 +9,8 @@
     flake-utils.url = "github:hamishmack/flake-utils/hkm/nested-hydraJobs";
 
     cardano-node-sancho.url = "github:IntersectMBO/cardano-node/af4384f9a98cbe6b98a799713ee1d14a1d479cc4";
+    # cardano-node-sancho.url = "github:IntersectMBO/cardano-node/c5d3d63b95b99c8000b5977948cb673dd89d28cc";
+    temp-cardano-cli.url = "github:IntersectMBO/cardano-cli/6dc843c53b5a1df7b3abb37f291dd1b54238e7f2";
 
     CHaP.url = "github:IntersectMBO/cardano-haskell-packages?ref=repo";
     CHaP.flake = false;
@@ -76,7 +78,7 @@
             python311Packages.cryptography
             # add cardano-node and client to shell for running local testnets
             inputs.cardano-node-sancho.outputs.packages.${system}.cardano-node
-            inputs.cardano-node-sancho.outputs.packages.${system}.cardano-cli
+            inputs.temp-cardano-cli.outputs.packages.${system}."cardano-cli:exe:cardano-cli"
 
             (pkgs.writeShellScriptBin "deploy-local-testnet" ''
                cd $REPO_ROOT

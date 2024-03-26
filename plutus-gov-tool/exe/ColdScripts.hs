@@ -4,6 +4,7 @@
 {-# LANGUAGE NoImplicitPrelude                  #-}
 {-# LANGUAGE ViewPatterns                       #-}
 {-# LANGUAGE Strict                             #-}
+{-# LANGUAGE OverloadedStrings                  #-}
 
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas   #-}
 {-# OPTIONS_GHC -fno-omit-interface-pragmas     #-}
@@ -31,6 +32,7 @@ import PlutusTx.Prelude
       maybe, 
       (<$>), 
       check,
+      traceIfFalse,
       (/=), 
       modulo )
 import PlutusTx.List
@@ -167,7 +169,6 @@ makeIsDataIndexed ''ColdLockScriptRedeemer [('Delegate, 0), ('Resign, 1), ('Reco
 -- the value and datum of this input (so there is no state transitions/movement of value).
 -- Also, this action makes sure the transaction is signed by a majority of the delegate certificates.
 -- Effectively, this action witnesses control of the UTxO to be able to issue a hot CC credential.
--- Note that this action does not check that this certificate is witnessed!
 --
 -- Resign X509: checks that the provided X509 certificate from the redeemer is in the delegate list,
 -- that the transaction is signed by this X509 certificate, and the certificate is removed from the delegate list.
@@ -182,11 +183,16 @@ makeIsDataIndexed ''ColdLockScriptRedeemer [('Delegate, 0), ('Resign, 1), ('Reco
 coldLockScript :: ColdLockScriptDatum -> ColdLockScriptRedeemer -> ScriptContext -> Bool
 coldLockScript dtm red ctx = case scriptContextPurpose ctx of
     Spending txOurRef -> case red of
-        Delegate     -> checkTxOutPreservation && checkMultiSig (delegateX509s dtm)
+        Delegate     -> checkTxOutPreservation && checkMultiSig (delegateX509s dtm) && checkAuthHotCert
             where
                 checkTxOutPreservation = case ownInput of
                     Just txOut  -> txOut `elem` txInfoOutputs txInfo
                     Nothing     -> False
+                checkAuthHotCert = case txInfoTxCerts txInfo of
+                    x:xs -> case x of
+                        TxCertAuthHotCommittee _ _ -> xs == []
+                        _ -> False
+                    _  -> True
         Resign x509 -> memberX509 && txSignedX509 && removedX509 && notWitnessed
             where
                 memberX509 = x509 `elem` delegateX509s'
@@ -217,16 +223,16 @@ coldLockScriptCode = $$(compile [|| wrappedColdLockScript ||])
 
 -- testing purposes
 
-{-# INLINABLE alwaysTrueMint #-}
-alwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
-alwaysTrueMint _ _ = True
+{-# INLINABLE coldAlwaysTrueMint #-}
+coldAlwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
+coldAlwaysTrueMint _ _ = True
 
-{-# INLINABLE wrappedAlwaysTrueMint #-}
-wrappedAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
-wrappedAlwaysTrueMint = wrapTwoArgs alwaysTrueMint
+{-# INLINABLE wrappedColdAlwaysTrueMint #-}
+wrappedColdAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
+wrappedColdAlwaysTrueMint = wrapTwoArgs coldAlwaysTrueMint
 
-alwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
-alwaysTrueMintCode = $$(compile [|| wrappedAlwaysTrueMint ||])
+coldAlwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
+coldAlwaysTrueMintCode = $$(compile [|| wrappedColdAlwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 

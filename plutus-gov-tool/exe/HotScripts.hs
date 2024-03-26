@@ -4,6 +4,7 @@
 {-# LANGUAGE NoImplicitPrelude                  #-}
 {-# LANGUAGE ViewPatterns                       #-}
 {-# LANGUAGE Strict                             #-}
+{-# LANGUAGE OverloadedStrings                  #-}
 
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas   #-}
 {-# OPTIONS_GHC -fno-omit-interface-pragmas     #-}
@@ -31,6 +32,7 @@ import PlutusTx.Prelude
       maybe, 
       (<$>), 
       check,
+      traceIfFalse,
       (/=), 
       modulo )
 import PlutusTx.List
@@ -72,6 +74,15 @@ import PlutusTx.Numeric
 import ColdScripts (ColdLockScriptDatum (..), X509 (..))
 
 -- Helper function to wrap a script to error on the return of a False.
+{-# INLINABLE wrapTwoArgs #-}
+wrapTwoArgs  :: (UnsafeFromData a)
+                => (a -> ScriptContext -> Bool)
+                -> (BuiltinData -> BuiltinData -> ())
+wrapTwoArgs f a ctx =
+  check $ f
+      (unsafeFromBuiltinData a)
+      (unsafeFromBuiltinData ctx)
+
 {-# INLINABLE wrapThreeArgs #-}
 wrapThreeArgs :: ( UnsafeFromData a
              , UnsafeFromData b)
@@ -208,6 +219,19 @@ wrappedHotLockScript = wrapFourArgs hotLockScript
 
 hotLockScriptCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> ())
 hotLockScriptCode = $$(compile [|| wrappedHotLockScript ||])
+
+-- testing purposes
+
+{-# INLINABLE hotAlwaysTrueMint #-}
+hotAlwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
+hotAlwaysTrueMint _ _ = traceIfFalse "This also always returns true" True
+
+{-# INLINABLE wrappedHotAlwaysTrueMint #-}
+wrappedHotAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
+wrappedHotAlwaysTrueMint = wrapTwoArgs hotAlwaysTrueMint
+
+hotAlwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
+hotAlwaysTrueMintCode = $$(compile [|| wrappedHotAlwaysTrueMint ||])
 
 -- remove the following when PlutusLedger.V3 exports these functions
 

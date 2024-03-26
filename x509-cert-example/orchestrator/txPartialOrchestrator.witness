@@ -1,0 +1,5 @@
+{
+    "type": "TxWitness ConwayEra",
+    "description": "Key Witness ShelleyEra",
+    "cborHex": "8258207598e5ec154f9d25d0ea28d8491cdeeaab61ec0115e034401476322f88ed922b58402566027c1b96b4aa05f02340a803327a13f4d91fc5d0b6e337afc27338d67667462d67b45dda077ac04d4a87b2842a64382e857546d794501e5ecd3c38e5530b"
+}

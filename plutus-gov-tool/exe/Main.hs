@@ -33,7 +33,7 @@ import qualified PlutusLedgerApi.V2 as PlutusV2
 import qualified PlutusLedgerApi.V1 as PlutusV1
 
 import ColdScripts                
-  ( alwaysTrueMintCode
+  ( coldAlwaysTrueMintCode
   , coldLockScriptCode
   , coldCredentialScriptCode
   , X509 (..)
@@ -41,7 +41,8 @@ import ColdScripts
   , ColdLockScriptRedeemer (..))
 import HotScripts
   ( hotCredentialScriptCode
-  , hotLockScriptCode)
+  , hotLockScriptCode
+  , hotAlwaysTrueMintCode)
 
 import Data.Aeson             (Value)
 import qualified Data.ByteString.Char8 as BS8
@@ -59,11 +60,17 @@ writeCodeToFile version filePath = case version of
 
 ---------------------------------------
 
-scriptHashAlwaysTrueMint :: ScriptHash
-scriptHashAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ alwaysTrueMintCode
+scriptHashColdAlwaysTrueMint :: ScriptHash
+scriptHashColdAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ coldAlwaysTrueMintCode
 
-alwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
-alwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashAlwaysTrueMint
+scriptHashHotAlwaysTrueMint :: ScriptHash
+scriptHashHotAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ hotAlwaysTrueMintCode
+
+coldAlwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
+coldAlwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashColdAlwaysTrueMint
+
+hotAlwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
+hotAlwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashHotAlwaysTrueMint
 
 dataToJSON :: PlutusV3.ToData a => a -> Value
 dataToJSON = scriptDataToJsonDetailedSchema . unsafeHashableScriptData . fromPlutusData . PlutusV3.toData
@@ -73,48 +80,57 @@ printDataToJSON = putStrLn . BS8.unpack . prettyPrintJSON . dataToJSON
 
 main :: IO ()
 main = do
-  writeCodeToFile PlutusScriptV3 "./assets/V3/alwaysTrueMint.plutus" alwaysTrueMintCode
+  writeCodeToFile PlutusScriptV3 "./assets/V3/coldAlwaysTrueMint.plutus" coldAlwaysTrueMintCode
+  writeCodeToFile PlutusScriptV3 "./assets/V3/hotAlwaysTrueMint.plutus" hotAlwaysTrueMintCode
   -- setting up the cold credential and locking scripts 
-  let coldCredentialScriptCodeApplied = coldCredentialScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData alwaysTrueCurrencySymbol)
-  putStrLn $ "Applied currency symbol " ++ show alwaysTrueCurrencySymbol ++ " to coldCredentialScriptCode"
+  let coldCredentialScriptCodeApplied = coldCredentialScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData coldAlwaysTrueCurrencySymbol)
+  putStrLn $ "Applied currency symbol " ++ show coldAlwaysTrueCurrencySymbol ++ " to coldCredentialScriptCode"
   -- writing cold side to file
   writeCodeToFile PlutusScriptV3 "./assets/V3/coldCredentialScript.plutus" coldCredentialScriptCodeApplied
   writeCodeToFile PlutusScriptV3 "./assets/V3/coldLockScript.plutus" coldLockScriptCode
   -- setting up the hot credential and locking scripts
-  let hotCredentialScriptCodeApplied = hotCredentialScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData alwaysTrueCurrencySymbol)
-  putStrLn $ "Applied currency symbol " ++ show alwaysTrueCurrencySymbol ++ " to hotCredentialScriptCode"
-  let hotLockScriptCodeApplied = hotLockScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData alwaysTrueCurrencySymbol)
-  putStrLn $ "Applied currency symbol " ++ show alwaysTrueCurrencySymbol ++ " to hotLockScriptCode"
+  let hotCredentialScriptCodeApplied = hotCredentialScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData hotAlwaysTrueCurrencySymbol)
+  putStrLn $ "Applied currency symbol " ++ show hotAlwaysTrueCurrencySymbol ++ " to hotCredentialScriptCode"
+  let hotLockScriptCodeApplied = hotLockScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData coldAlwaysTrueCurrencySymbol)
+  putStrLn $ "Applied currency symbol " ++ show coldAlwaysTrueCurrencySymbol ++ " to hotLockScriptCode"
   -- writing hot side to file
   writeCodeToFile PlutusScriptV3 "./assets/V3/hotCredentialScript.plutus" hotCredentialScriptCodeApplied
   writeCodeToFile PlutusScriptV3 "./assets/V3/hotLockScript.plutus" hotLockScriptCodeApplied
-  -- printDataToJSON datum
-  writeFile "./assets/datums/initDatum.json" (BS8.unpack . prettyPrintJSON $ dataToJSON initDatum)
-  writeFile "./assets/datums/resignChild4Datum.json" (BS8.unpack . prettyPrintJSON $ dataToJSON resignChild4Datum)
-  writeFile "./assets/redeemers/reesignChild4Redeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON resignChild4Redeemer)
-  writeFile "./assets/redeemers/recoverRedeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON recoverRedeemer)
+  -- printDataToJSON datums
+  -- the initial datums for the e2e example for both the cold and hot locking scripts
+  writeFile "./assets/datums/initColdLockScriptDatum.json" (BS8.unpack . prettyPrintJSON $ dataToJSON initColdLockScriptDatum)
+  writeFile "./assets/datums/initHotLockScriptDatum.json" (BS8.unpack . prettyPrintJSON $ dataToJSON initHotLockScriptDatum)
+  -- the delegate redeemer needed to authorize the hot credential
   writeFile "./assets/redeemers/delegateRedeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON delegateRedeemer)
+  -- the resign redeemer needed to remove a delegate from the old datum
+  writeFile "./assets/datums/resignMemberChild4NewDatum.json" (BS8.unpack . prettyPrintJSON $ dataToJSON resignMemberChild4NewDatum)
+  writeFile "./assets/redeemers/resignMemberChild4Redeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON resignMemberChild4Redeemer)
+  -- the recover redeemer needed to recover the CC NFT from lock script
+  writeFile "./assets/redeemers/recoverColdRedeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON recoverColdRedeemer)
   putStrLn "done!"
 
-initDatum :: ColdLockScriptDatum
-initDatum = ColdLockScriptDatum {
+initColdLockScriptDatum :: ColdLockScriptDatum
+initColdLockScriptDatum = ColdLockScriptDatum {
     caX509 = caCert,
     recoveryX509s = [child1Cert, child2Cert, child3Cert],
     delegateX509s = [child4Cert, child5Cert, child6Cert]
 }
 
-resignChild4Datum :: ColdLockScriptDatum
-resignChild4Datum = ColdLockScriptDatum {
+initHotLockScriptDatum :: [X509]
+initHotLockScriptDatum = [child7Cert, child8Cert, child9Cert]
+
+resignMemberChild4NewDatum :: ColdLockScriptDatum
+resignMemberChild4NewDatum = ColdLockScriptDatum {
     caX509 = caCert,
     recoveryX509s = [child1Cert, child2Cert, child3Cert],
     delegateX509s = [child5Cert, child6Cert]
 }
 
-resignChild4Redeemer :: ColdLockScriptRedeemer
-resignChild4Redeemer = Resign child4Cert
+resignMemberChild4Redeemer :: ColdLockScriptRedeemer
+resignMemberChild4Redeemer = Resign child4Cert
 
-recoverRedeemer :: ColdLockScriptRedeemer
-recoverRedeemer = Recover
+recoverColdRedeemer :: ColdLockScriptRedeemer
+recoverColdRedeemer = Recover
 
 delegateRedeemer :: ColdLockScriptRedeemer
 delegateRedeemer = Delegate
