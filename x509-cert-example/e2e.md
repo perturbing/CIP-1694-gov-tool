@@ -15,7 +15,6 @@ This will compile and write the `coldAlwaysTrueMint` and `hotAlwaysTrueMint` scr
 Now that we have the scripts, we can determine the script hash of the Cold credential to hard-code it into the genesis configuration located in `/local-testnet/scripts/babbage/conway-babbage-test-genesis.json`. This can be done via
 ```bash
 cardano-cli transaction policyid --script-file assets/V3/coldCredentialScript.plutus
-df70d478148ea26f5bdb758a3e5d54b066b6c4668734735d1ed33d40
 ```
 
 ## Deploy local testnet
@@ -47,9 +46,6 @@ cardano-cli address build --testnet-magic 42 --payment-verification-key-file orc
 If all went well, you should be able to see the funds via
 ```bash
 cardano-cli query utxo --testnet-magic 42 --address $(cat orchestrator.addr)
-                           TxHash                                 TxIx        Amount
---------------------------------------------------------------------------------------
-8c225f149fe73109d2646e5f2aa7436f626670ea3a85faec1ad7e8693db62354     0        600000000000 lovelace + TxOutDatumNone
 ```
 To mint the two NFT's (the `CC NFT` and `Vote NFT`) we first calculate the minting policy of the `alwaysTrueMint.plutus` script via
 ```bash
@@ -184,7 +180,6 @@ cardano-cli transaction policyid --script-file ../../assets/V3/hotCredentialScri
     "epoch": 9,
     "quorum": 0.0
 }
-499081bed6b3aedc22437365e13233ffeb0ade946ae81f94e13ee769
 ```
 The scripts are now both deployed and configured as intended.
 
