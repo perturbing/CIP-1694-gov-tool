@@ -23,3 +23,4 @@ cabal.project.local~
 .ghc.environment.*
 local-testnet/example
 local-testnet/logs
+x509-cert-example/orchestrator
