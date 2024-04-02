@@ -3637,17 +3637,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1711118310,
-        "narHash": "sha256-2Y1dDDgIc4m15Fsd/tOEKJfuFNqkCBxe9SUbejDZE9Q=",
+        "lastModified": 1711043167,
+        "narHash": "sha256-Get/3qq5tOW6VAVXGvn1lYXxo86+aM2HHspwHOkwhNE=",
         "owner": "IntersectMBO",
         "repo": "cardano-cli",
-        "rev": "6dc843c53b5a1df7b3abb37f291dd1b54238e7f2",
+        "rev": "1653aa3419b1c327d16d322328bf4a5490ca3825",
         "type": "github"
       },
       "original": {
         "owner": "IntersectMBO",
+        "ref": "cardano-cli-8.21.0.0",
         "repo": "cardano-cli",
-        "rev": "6dc843c53b5a1df7b3abb37f291dd1b54238e7f2",
         "type": "github"
       }
     },

@@ -101,8 +101,8 @@ import Shared (wrapTwoArgs, wrapThreeArgs, wrapFourArgs)
 {-# INLINABLE hotCredentialScript #-}
 hotCredentialScript :: CurrencySymbol -> BuiltinData -> ScriptContext -> Bool
 hotCredentialScript symbol _ ctx = case scriptContextPurpose ctx of
-    Certifying _ _  -> any (\value -> symbol `member` value) txInputsValues
-    _               -> False
+    Voting _  -> any (\value -> symbol `member` value) txInputsValues
+    _         -> False
     where
         -- The list of transaction inputs being consumed in this transaction.
         txInputs = txInfoInputs . scriptContextTxInfo $ ctx

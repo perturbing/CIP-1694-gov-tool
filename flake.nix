@@ -10,7 +10,7 @@
 
     cardano-node-sancho.url = "github:IntersectMBO/cardano-node/af4384f9a98cbe6b98a799713ee1d14a1d479cc4";
     # cardano-node-sancho.url = "github:IntersectMBO/cardano-node/c5d3d63b95b99c8000b5977948cb673dd89d28cc";
-    temp-cardano-cli.url = "github:IntersectMBO/cardano-cli/6dc843c53b5a1df7b3abb37f291dd1b54238e7f2";
+    temp-cardano-cli.url = "github:IntersectMBO/cardano-cli/cardano-cli-8.21.0.0";
 
     CHaP.url = "github:IntersectMBO/cardano-haskell-packages?ref=repo";
     CHaP.flake = false;
@@ -91,6 +91,36 @@
                cd $REPO_ROOT
                rm -Rf local-testnet/logs
                rm -Rf local-testnet/example
+            '')
+
+            (pkgs.writeShellScriptBin "createDummyAction" ''
+               cd $REPO_ROOT
+               cd local-testnet/example/utxo-keys
+               cardano-cli address build --testnet-magic 42 --payment-verification-key-file utxo2.vkey > utxo2.addr
+               cardano-cli conway governance action create-protocol-parameters-update \
+                --testnet \
+                --governance-action-deposit $(cardano-cli conway query gov-state --testnet-magic 42 | jq -r '.enactState.curPParams.govActionDeposit') \
+                --deposit-return-stake-verification-key-file ../pools/staking-reward1.vkey \
+                --anchor-url https://raw.githubusercontent.com/Ryun1/metadata/main/cip108/treasury-withdrawal.jsonld \
+                --anchor-data-hash 931f1d8cdfdc82050bd2baadfe384df8bf99b00e36cb12bfb8795beab3ac7fe5 \
+                --key-reg-deposit-amt 1000000 \
+                --out-file pp-update.action
+               cardano-cli conway transaction build \
+                --testnet-magic 42 \
+                --witness-override 2 \
+                --tx-in "$(cardano-cli query utxo --address "$(cat utxo2.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+                --change-address $(cat utxo2.addr) \
+                --proposal-file pp-update.action \
+                --out-file tx.raw
+               cardano-cli conway transaction sign \
+                --testnet-magic 42 \
+                --tx-body-file tx.raw \
+                --signing-key-file utxo2.skey \
+                --signing-key-file ../pools/staking-reward1.skey \
+                --out-file tx.signed
+               cardano-cli conway transaction submit \
+                --testnet-magic 42 \
+                --tx-file tx.signed
             '')
 
             (pkgs.writeShellScriptBin "viewX509Cert" ''

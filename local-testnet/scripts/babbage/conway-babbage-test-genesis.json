@@ -20,7 +20,7 @@
   },
   "committeeMinSize": 0,
   "committeeMaxTermLength": 5000000,
-  "govActionLifetime": 10,
+  "govActionLifetime": 100,
   "govActionDeposit": 1000000000,
   "dRepDeposit": 2000000,
   "dRepActivity": 20,

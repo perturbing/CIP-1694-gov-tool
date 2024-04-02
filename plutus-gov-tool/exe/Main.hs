@@ -42,7 +42,8 @@ import ColdScripts
 import HotScripts
   ( hotCredentialScriptCode
   , hotLockScriptCode
-  , hotAlwaysTrueMintCode)
+  , hotAlwaysTrueMintCode
+  , HotLockScriptRedeemer (..))
 
 import Data.Aeson             (Value)
 import qualified Data.ByteString.Char8 as BS8
@@ -107,6 +108,8 @@ main = do
   writeFile "./assets/redeemers/resignMemberChild4Redeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON resignMemberChild4Redeemer)
   -- the recover redeemer needed to recover the CC NFT from lock script
   writeFile "./assets/redeemers/recoverColdRedeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON recoverColdRedeemer)
+  -- the vote redeemer needed witness the Vote NFT from lock script
+  writeFile "./assets/redeemers/voteRedeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON voteRedeemer)
   putStrLn "done!"
 
 initColdLockScriptDatum :: ColdLockScriptDatum
@@ -127,13 +130,16 @@ resignMemberChild4NewDatum = ColdLockScriptDatum {
 }
 
 resignMemberChild4Redeemer :: ColdLockScriptRedeemer
-resignMemberChild4Redeemer = Resign child4Cert
+resignMemberChild4Redeemer = ColdScripts.Resign child4Cert
 
 recoverColdRedeemer :: ColdLockScriptRedeemer
-recoverColdRedeemer = Recover
+recoverColdRedeemer = ColdScripts.Recover
 
 delegateRedeemer :: ColdLockScriptRedeemer
 delegateRedeemer = Delegate
+
+voteRedeemer :: HotLockScriptRedeemer
+voteRedeemer = Vote
 
 -- helper function to create a X509 certificate for testing purposes
 -- the first argument is 28 bytes long and the second is 32 bytes long
