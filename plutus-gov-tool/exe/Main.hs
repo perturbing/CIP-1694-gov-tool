@@ -45,7 +45,8 @@ import HotScripts
   , hotAlwaysTrueMintCode
   , HotLockScriptRedeemer (..))
 
-import Data.Aeson             (Value)
+import Data.Aeson (Value)
+import GHC.ByteOrder ( ByteOrder(..) )
 import qualified Data.ByteString.Char8 as BS8
 
 writePlutusScriptToFile :: IsPlutusScriptLanguage lang => FilePath -> PlutusScript lang -> IO ()
@@ -145,8 +146,8 @@ voteRedeemer = Vote
 -- the first argument is 28 bytes long and the second is 32 bytes long
 createCert :: Integer -> Integer -> X509
 createCert pubKeyHash x509Hash = X509 {
-    pubKeyHash = PlutusV3.PubKeyHash (PlutusTx.integerToByteString True 28 pubKeyHash),
-    x509Hash = PlutusTx.integerToByteString True 32 x509Hash
+    pubKeyHash = PlutusV3.PubKeyHash (PlutusTx.integerToByteString BigEndian 28 pubKeyHash),
+    x509Hash = PlutusTx.integerToByteString BigEndian 32 x509Hash
 }
 
 -- Some hardcoded X509 certificate from the x509-cert-example folder

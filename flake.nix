@@ -57,7 +57,7 @@
 
           # tools we want in our shell
           shell.tools = {
-            cabal = "3.10.1.0";
+            cabal = "3.10.3.0";
             ghcid = "0.8.8";
             haskell-language-server = "latest";
             hlint = {};
