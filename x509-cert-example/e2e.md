@@ -3,32 +3,94 @@ In this E2E example, we will demonstrate how the CC scripts can be deployed and 
 
 This E2E example also uses a simple dummy X509 certificate tree that can be found in the `/X509-cert-example/CA` folder. As an overview, this CA has nine children of which the first three will hold the Membership role, the next three will hold the Delegation role and the last three will hold the Voter role as per the following the overview.
 
-![script overview](overview_credential_CC_2024-03-29.jpg)
+![script overview](images/overview_credential_CC_2024-03-29.jpg)
+
+## Prerequisites
+
+You need to have Nix shell installed to follow this example. Note that you will use two terminal windows: one for deploying a Cardano local testnet and another to compile and run the scripts.
 
 ## Compiling the scripts
-The CC scripts are comprised of 4 scripts (besides the minting scripts), two spending scripts and two certification scripts that only take in a redeemer. To compile these plutus scripts and save them to disk, you can use
+
+The CC scripts are comprised of four Plutus scripts (besides the minting scripts), two spending scripts and two certification scripts that only take in a redeemer.
+
+To compile these Plutus scripts and save them to disk, open a terminal window and run the following command:
+
 ```bash
 nix run .#plutus-gov-tool:exe:write-scripts
 ```
+
 This will compile and write the `coldAlwaysTrueMint` and `hotAlwaysTrueMint` scripts to disk and apply the former currency symbol to the cold credential CC credential to constrain it to the `Identity NFT`, after which this script is also written to disk. Then, the same currency symbols are used for the `Vote NFT` and applied to the hot credential and the hot locking script. Besides the scripts, this will also write some basic datums and redeemers for the purpose of the example in the `assets` folder.
 
-Now that we have the scripts, we can determine the script hash of the Cold credential to hard-code it into the genesis configuration located in `/local-testnet/scripts/babbage/conway-babbage-test-genesis.json`. This can be done via
+Now that we have the scripts, we can determine the script hash of the Cold credential to hard-code it into the genesis configuration located in `/local-testnet/scripts/babbage/conway-babbage-test-genesis.json`.
+
+Start an interactive Nix shell as follows to enable the `cardano-cli` command:
+
+```bash
+nix develop
+```
+
+> **Note:** The first time you run this this command it can take some time depending on your system.
+
+Next, we can obtain the script hash of the Cold credential to hard-code it into the genesis configuration as follows:
+
 ```bash
 cardano-cli transaction policyid --script-file assets/V3/coldCredentialScript.plutus
 ```
 
 ## Deploy local testnet
-To deploy the local testnet you need to enter the developer shell via `nix develop`. This will bring one of the latest versions of `cardano-node`and `cardano-cli` into your path. You can check this version against
+
+To deploy the local testnet, open a second terminal window and enter the developer shell via `nix develop`. This will bring one of the latest versions of `cardano-node`and `cardano-cli` into your path. You can check this version against:
+
 ```bash
-cardano-node --version 
+cardano-node --version
+```
+
+Next, we can see a text output that shows our Cardano node version.
+
+```text
 cardano-node 8.9.0 - linux-x86_64 - ghc-8.10
 git rev 11d12d8fb6a4d65a996884f283bb40d66d904bbf
 ```
-Besides the node and cli, this shell also provides a few bash scripts to your path that will be used to showcase the CC scripts. One of those scripts is the `deploy-local-testnet` command, this will run the `scripts/babbage/mkfiles.sh` and run the nodes. Keep this script running and in a new shell, you can verify that your testnet deployed by checking that
+
+Besides the node and cli, Nix shell also provides a few bash scripts to your path that will be used to showcase the CC scripts. To deploy the local testnet, run the following script:
+
+```bash
+deploy-local-testnet
+```
+
+The animation bellow shows an example of successfully deploying a testnet.
+
+![Local Cardano testnet running](images/deploying-testnet.gif)
+
+The `deploy-local-testnet` script will run the `scripts/babbage/mkfiles.sh` and run the Cardano nodes. Keep this script running in the shell.
+
+You can verify that your testnet is deployed by running the following command in your first terminal window:
+
 ```bash
 cardano-cli conway query committee-state --testnet-magic 42
 ```
-shows our hard-coded cold committee member. Note that, thought this now an active CC member, the `Identity NFT` is not yet locked. Also, in case you need to specify the node socket path, this is located in `/local-testnet/example/node-spo1/node.sock`.
+This command shows our hard-coded cold committee member as follows.
+
+```json
+{
+    "committee": {
+        "scriptHash-df70d478148ea26f5bdb758a3e5d54b066b6c4668734735d1ed33d40": {
+            "expiration": 50000,
+            "hotCredsAuthStatus": {
+                "tag": "MemberNotAuthorized"
+            },
+            "nextEpochChange": {
+                "tag": "NoChangeExpected"
+            },
+            "status": "Active"
+        }
+    },
+    "epoch": 16,
+    "quorum": 0.0
+}
+```
+
+Note that, thought this now an active CC member, the `Identity NFT` is not yet locked. Also, in case you need to specify the node socket path, this is located in `/local-testnet/example/node-spo1/node.sock`.
 
 You can use `Ctrl + C` to forcefully terminate the scripts that run the nodes. If you want to respin the network again, you can use the `purge-local-testnet` command, this will delete the blockchain (after which you can deploy again).
 
