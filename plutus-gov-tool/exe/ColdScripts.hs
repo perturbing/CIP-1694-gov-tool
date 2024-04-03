@@ -191,7 +191,7 @@ coldLockScript dtm red ctx = case scriptContextPurpose ctx of
         where
             txInfo = scriptContextTxInfo ctx
             ownInput = txInInfoResolved <$> findTxInByTxOutRef txOurRef txInfo
-            checkMultiSig list = majority <= numberOfSignatures
+            checkMultiSig list = majority <= numberOfSignatures && numberOfSignatures > 0
                 where
                     majority = (\x -> divide x 2 + modulo x 2) $ length list
                     numberOfSignatures = length $ filter (txSignedBy txInfo . pubKeyHash) list

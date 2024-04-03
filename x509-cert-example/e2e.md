@@ -255,7 +255,7 @@ cardano-cli conway transaction build-raw \
  --vote-redeemer-value {} \
  --vote-execution-units "(6000000000,4000000)" \
  --tx-out $(cat orchestrator.addr)+599983812195 \
- --fee 5000000 \
+ --fee 4999310 \
  --protocol-params-file pparams.json \
  --out-file tx.raw
 ```
