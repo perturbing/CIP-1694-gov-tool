@@ -37,6 +37,22 @@
           inherit system;
           inherit (inputs.haskellNix) config;
         };
+
+        verifyCert = nixpkgs.python311Packages.buildPythonApplication {
+          pname = "verify-cert";
+          version = "0.0.0";
+          src = ./local-testnet/verify-cert;
+          propagatedBuildInputs = [ nixpkgs.python311Packages.cryptography ];
+        };
+        x509Scripts = nixpkgs.stdenv.mkDerivation {
+          name = "x509-certs";
+          verison = "0.0.0";
+          dontUnpack = true;
+          installPhase = ''
+            install -Dm755 ${./local-testnet/scripts/mkX509Cert.sh} $out/bin/issue-cert
+            install -Dm755 ${nixpkgs.writeScript "view-x509-cert" "${nixpkgs.openssl}/bin/openssl x509 -in $1 -text -noout"} $out/bin/view-x509-cert
+          '';
+        };
         # ... and construct a flake from the cabal.project file.
         # We use cabalProject' to ensure we don't build the plan for
         # all systems.
@@ -123,18 +139,8 @@
                 --tx-file tx.signed
             '')
 
-            (pkgs.writeShellScriptBin "viewX509Cert" ''
-               openssl x509 -in $1 -text -noout
-            '')
-
-            (pkgs.writeShellScriptBin "verifyCert" ''
-               python3 "$REPO_ROOT/local-testnet/scripts/verify.py" $1 $2
-            '')
-
-            (pkgs.writeShellScriptBin "issueCert" ''
-               bash "$REPO_ROOT/local-testnet/scripts/mkX509Cert.sh" $1 $2 $3 $4
-            '')
-
+            verifyCert
+            x509Scripts
           ];
           shell.withHoogle = true;
 
@@ -179,6 +185,8 @@
         });
       in nixpkgs.lib.recursiveUpdate flake {
         # add a required job, that's basically all hydraJobs.
+        packages.x509Scripts = x509Scripts;
+        packages.verifyCert = verifyCert;
         hydraJobs = nixpkgs.callPackages inputs.iohkNix.utils.ciJobsAggregates
           { ciJobs = flake.hydraJobs; };
       }
