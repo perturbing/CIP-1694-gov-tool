@@ -22,7 +22,7 @@ To deploy the local testnet you need to enter the developer shell via `nix devel
 ```bash
 cardano-node --version 
 cardano-node 8.9.0 - linux-x86_64 - ghc-8.10
-git rev af4384f9a98cbe6b98a799713ee1d14a1d479cc4
+git rev 11d12d8fb6a4d65a996884f283bb40d66d904bbf
 ```
 Besides the node and cli, this shell also provides a few bash scripts to your path that will be used to showcase the CC scripts. One of those scripts is the `deploy-local-testnet` command, this will run the `scripts/babbage/mkfiles.sh` and run the nodes. Keep this script running and in a new shell, you can verify that your testnet deployed by checking that
 ```bash
@@ -254,8 +254,8 @@ cardano-cli conway transaction build-raw \
  --vote-script-file ../../assets/V3/hotCredentialScript.plutus \
  --vote-redeemer-value {} \
  --vote-execution-units "(6000000000,4000000)" \
- --tx-out $(cat orchestrator.addr)+599982791052 \
- --fee 6057903 \
+ --tx-out $(cat orchestrator.addr)+599983812195 \
+ --fee 5000000 \
  --protocol-params-file pparams.json \
  --out-file tx.raw
 ```

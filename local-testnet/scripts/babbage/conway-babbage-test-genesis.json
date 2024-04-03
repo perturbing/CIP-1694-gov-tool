@@ -24,6 +24,7 @@
   "govActionDeposit": 1000000000,
   "dRepDeposit": 2000000,
   "dRepActivity": 20,
+  "minFeeRefScriptCostPerByte": 0,
   "constitution": {
     "anchor": {
       "url": "",
@@ -32,8 +33,8 @@
   },
   "committee": {
     "members": {
-      "scriptHash-df70d478148ea26f5bdb758a3e5d54b066b6c4668734735d1ed33d40":50000
+      "scriptHash-18a2c0e91e85cebe8f381a0a4b55208d6c5b1905daed02bfc157cc8c":50000
     },
-    "quorum": 0
+    "threshold": 0
   }
 }

@@ -99,7 +99,7 @@
                cardano-cli address build --testnet-magic 42 --payment-verification-key-file utxo2.vkey > utxo2.addr
                cardano-cli conway governance action create-protocol-parameters-update \
                 --testnet \
-                --governance-action-deposit $(cardano-cli conway query gov-state --testnet-magic 42 | jq -r '.enactState.curPParams.govActionDeposit') \
+                --governance-action-deposit $(cardano-cli conway query gov-state --testnet-magic 42 | jq -r '.currentPParams.govActionDeposit') \
                 --deposit-return-stake-verification-key-file ../pools/staking-reward1.vkey \
                 --anchor-url https://raw.githubusercontent.com/Ryun1/metadata/main/cip108/treasury-withdrawal.jsonld \
                 --anchor-data-hash 931f1d8cdfdc82050bd2baadfe384df8bf99b00e36cb12bfb8795beab3ac7fe5 \
