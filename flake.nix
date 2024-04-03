@@ -8,9 +8,8 @@
     iohkNix.url = "github:input-output-hk/iohk-nix";
     flake-utils.url = "github:hamishmack/flake-utils/hkm/nested-hydraJobs";
 
-    cardano-node-sancho.url = "github:IntersectMBO/cardano-node/af4384f9a98cbe6b98a799713ee1d14a1d479cc4";
-    # cardano-node-sancho.url = "github:IntersectMBO/cardano-node/c5d3d63b95b99c8000b5977948cb673dd89d28cc";
-    temp-cardano-cli.url = "github:IntersectMBO/cardano-cli/cardano-cli-8.21.0.0";
+    # this is node 8.10
+    cardano-node.url = "github:IntersectMBO/cardano-node/11d12d8fb6a4d65a996884f283bb40d66d904bbf";
 
     CHaP.url = "github:IntersectMBO/cardano-haskell-packages?ref=repo";
     CHaP.flake = false;
@@ -44,6 +43,7 @@
         flake = (nixpkgs.haskell-nix.cabalProject' rec {
           src = ./.;
           name = "plutus-gov-tool";
+          # since we depend on plutus-tx-plugin, we have to use ghc96
           compiler-nix-name = "ghc96";
 
           # CHaP input map, so we can find CHaP packages (needs to be more
@@ -77,8 +77,8 @@
             outils
             python311Packages.cryptography
             # add cardano-node and client to shell for running local testnets
-            inputs.cardano-node-sancho.outputs.packages.${system}.cardano-node
-            inputs.temp-cardano-cli.outputs.packages.${system}."cardano-cli:exe:cardano-cli"
+            inputs.cardano-node.outputs.packages.${system}.cardano-node
+            inputs.cardano-node.outputs.packages.${system}.cardano-cli
 
             (pkgs.writeShellScriptBin "deploy-local-testnet" ''
                cd $REPO_ROOT
