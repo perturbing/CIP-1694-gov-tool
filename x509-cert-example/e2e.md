@@ -29,7 +29,7 @@ Start an interactive Nix shell as follows to enable the `cardano-cli` command:
 nix develop
 ```
 
-> **Note:** The first time you run this this command it can take some time depending on your system.
+> **Note:** The first time you run this command it can take some time depending on your system.
 
 Next, we can obtain the script hash of the Cold credential to hard-code it into the genesis configuration as follows:
 
@@ -58,7 +58,7 @@ Besides the node and cli, Nix shell also provides a few bash scripts to your pat
 deploy-local-testnet
 ```
 
-The animation bellow shows an example of successfully deploying a testnet.
+The animation below shows an example of successfully deploying a testnet.
 
 ![Local Cardano testnet running](images/deploying-testnet.gif)
 
