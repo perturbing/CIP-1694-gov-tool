@@ -49,7 +49,6 @@
           verison = "0.0.0";
           dontUnpack = true;
           installPhase = ''
-            install -Dm755 ${./local-testnet/scripts/mkX509Cert.sh} $out/bin/issue-cert
             install -Dm755 ${nixpkgs.writeScript "view-x509-cert" "${nixpkgs.openssl}/bin/openssl x509 -in $1 -text -noout"} $out/bin/view-x509-cert
           '';
         };

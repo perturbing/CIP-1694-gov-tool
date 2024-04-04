@@ -148,9 +148,12 @@ cardano-cli query utxo --testnet-magic 42 --address $(cat hotLockScript.addr)
 ```
 You can also add the `--output-json` flag to make the inline datum more readable.
 ## Delegate voting right to hot credential
-Now that we have hard-coded the cold credential in the list of CC members and locked the assets, we can utilize the cold locking script to delegate their voting right to our hot credential script. This because the CC member did not authorize one yet, 
+Now that we have hard-coded the cold credential in the list of CC members and locked the assets, we can utilize the cold locking script to delegate their voting right to our hot credential script. This because the CC member did not authorize one yet, which we can see using
 ```bash
 cardano-cli conway query committee-state --testnet-magic 42
+```
+This command shows our hard-coded cold committee member, but it hash not authorized hot credential,
+```bash
 {
     "committee": {
         "scriptHash-XXXXXX": {
@@ -225,6 +228,9 @@ If we now query the committee state again, we see that the hot credential is aut
 ```bash
 cardano-cli conway query committee-state --testnet-magic 42
 cardano-cli transaction policyid --script-file ../../assets/V3/hotCredentialScript.plutus
+```
+Which now will show a script credential for the hot credential,
+```bash
 {
     "committee": {
         "scriptHash-XXXXXXXX": {
@@ -254,9 +260,8 @@ But before we can vote, we have to create an action, if you use
 ```bash
 cardano-cli conway query gov-state --testnet-magic 42 | jq -r '.proposals'
 ```
-you will see that none exist. To make it easy in this example, you can use the `createDummyAction` command, which will create an action to set the `"keyDeposit"` parameter from 2 ada to 1 ada (this is for registering a staking key). With the same command as above, we can view the current status of this proposal
+you will see that none exist. To make it easy in this example, you can use the `createDummyAction` command, which will create an action to set the `"keyDeposit"` parameter from 2 ada to 1 ada (this is for registering a staking key). With the same command as above, we can view the current status of this proposal. Which looks something like this
 ```bash
-cardano-cli conway query gov-state --testnet-magic 42 | jq -r '.proposals'
 [
   {
     "action": {
