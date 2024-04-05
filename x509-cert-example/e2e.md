@@ -336,18 +336,42 @@ cardano-cli conway transaction build-raw \
  --vote-redeemer-value {} \
  --vote-execution-units "(6000000000,4000000)" \
  --tx-out $(cat orchestrator.addr)+599983812195 \
- --fee 4999310 \
+ --fee 5010392 \
  --protocol-params-file pparams.json \
  --out-file tx.raw
 ```
 which can be signed via
 ```bash
-cardano-cli transaction sign --testnet-magic 42 \
- --signing-key-file orchestrator.skey \
- --signing-key-file ../CA/children/child-7/child-7.skey \
- --signing-key-file ../CA/children/child-8/child-8.skey \
- --tx-body-file tx.raw \
- --out-file tx.signed
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-7/child-7.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild7.witness
+```
+and for child 
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-8/child-8.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild8.witness
+```
+and lastly, the orchestrator
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file orchestrator.skey \
+  --testnet-magic 42 \
+  --out-file txPartialOrchestrator.witness
+```
+and aggregated via
+```bash
+cardano-cli transaction assemble \
+  --tx-body-file tx.raw \
+  --witness-file txPartialOrchestrator.witness \
+  --witness-file txPartialChild7.witness \
+  --witness-file txPartialChild8.witness \
+  --out-file tx.signed
 cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
 ```
 If we now do
@@ -441,6 +465,14 @@ cardano-cli transaction witness \
   --testnet-magic 42 \
   --out-file txPartialChild1.witness
 ```
+and
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-2/child-2.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild2.witness
+```
 And assembled via
 ```bash
 cardano-cli transaction assemble \
@@ -526,14 +558,38 @@ cardano-cli conway transaction build --testnet-magic 42 \
  --change-address $(cat orchestrator.addr) \
  --out-file tx.raw
 ```
-and sign it via
+which can be partially witnessed by the orchestrator, child 4 and 5 via
 ```bash
-cardano-cli transaction sign --testnet-magic 42 \
- --signing-key-file orchestrator.skey \
- --signing-key-file ../CA/children/child-4/child-4.skey \
- --signing-key-file ../CA/children/child-5/child-5.skey \
- --tx-body-file tx.raw \
- --out-file tx.signed
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file orchestrator.skey \
+  --testnet-magic 42 \
+  --out-file txPartialOrchestrator.witness
+```
+and
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-4/child-4.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild4.witness
+```
+and
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-5/child-5.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild5.witness
+```
+And assembled via
+```bash
+cardano-cli transaction assemble \
+  --tx-body-file tx.raw \
+  --witness-file txPartialOrchestrator.witness \
+  --witness-file txPartialChild4.witness \
+  --witness-file txPartialChild5.witness \
+  --out-file tx.signed
 cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
 ```
 Once again, we can check if this public key hash of child 7 is present in the datum via
