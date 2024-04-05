@@ -152,7 +152,7 @@ Now that we have hard-coded the cold credential in the list of CC members and lo
 ```bash
 cardano-cli conway query committee-state --testnet-magic 42
 ```
-This command shows our hard-coded cold committee member, but it hash not authorized hot credential,
+This command shows our hard-coded cold committee member, but it has not authorized hot credential,
 ```bash
 {
     "committee": {
@@ -220,7 +220,7 @@ cardano-cli transaction witness \
   --testnet-magic 42 \
   --out-file txPartialChild5.witness
 ```
-lastly for the orchestrator
+lastly, for the orchestrator
 ```bash
 cardano-cli transaction witness \
   --tx-body-file tx.raw \
@@ -274,7 +274,7 @@ But before we can vote, we have to create an action, if you use
 ```bash
 cardano-cli conway query gov-state --testnet-magic 42 | jq -r '.proposals'
 ```
-you will see that none exist. To make it easy in this example, you can use the `createDummyAction` command, which will create an action to set the `"keyDeposit"` parameter from 2 ada to 1 ada (this is for registering a staking key). With the same command as above, we can view the current status of this proposal. Which looks something like this
+You will see that none exist. To make it easy in this example, you can use the `createDummyAction` command, which will create an action to set the `"keyDeposit"` parameter from 2 ada to 1 ada (this is for registering a staking key). With the same command as above, we can view the current status of this proposal. Which looks something like this
 ```bash
 [
   {
@@ -356,11 +356,11 @@ cardano-cli conway query gov-state --testnet-magic 42 | jq -r '.proposals'
 ```
 We see that the hot credential, we authorized above, voted yes on the proposal.
 ## Resign as delegation role
-A key that is assigned the delegation role, can unilateral resign their position in the list by creating a resign transaction. In the following example we will resign child 4, to verify that this public key is still in the list of the delegation role we can use
+A key that is assigned the delegation role, can unilateral resign their position in the list by creating a resignation transaction. In the following example, we will resign child 4, to verify that this public key is still in the list of the delegation role we can use
 ```bash
 cardano-cli query utxo --testnet-magic 42 --address $(cat coldLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum != null) | .value.inlineDatum.fields[] | .. | .bytes? | select(. == "fc6a114db76d31de585793749dcd6ad2d6c02a52ce9226820656bedd")'
 ```
-The resign transaction for this child is given by this,
+The resignation transaction for this child is given by this,
 ```bash 
 cardano-cli conway transaction build --testnet-magic 42 \
  --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
@@ -375,7 +375,7 @@ cardano-cli conway transaction build --testnet-magic 42 \
  --change-address $(cat orchestrator.addr) \
  --out-file tx.raw
 ```
-which can be partialy witnessed by the orchestrator and child-4 via
+which can be partially witnessed by the orchestrator and child-4 via
 ```bash
 cardano-cli transaction witness \
   --tx-body-file tx.raw \
@@ -404,12 +404,12 @@ If we now take a look at the datum of the UTxO where the `Identity NFT` resides,
 ```bash
 cardano-cli query utxo --testnet-magic 42 --address $(cat coldLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum != null) | .value.inlineDatum.fields[] | .. | .bytes? | select(. == "fc6a114db76d31de585793749dcd6ad2d6c02a52ce9226820656bedd")'
 ```
-we see that the `jq` filter cannot find the key of child 4 in the datum, it has been removed.
+We see that the `jq` filter cannot find the key of child 4 in the datum, it has been removed.
 
-> **Note:** The above transaction is not completly "unilateral", as the orchesrator needed to sign the transaction. In this example this is just a practicality, the child that resigned, could have funded the transaction on its own.
+> **Note:** The above transaction is not completely "unilateral", as the orchestrator needed to sign the transaction. In this example, this is just a practicality, the child who resigned, could have funded the transaction on its own.
 
 ## Insert or remove as membership role
-As the owner of the `Identity NFT`, the group in the membership role have full control over the UTxO that holds it. This means that they can do anything with it, which includes the removal and/or insertion of entries in the delegation role list. To demonstrate this, we will insert child 4 back in the list of delegetees (since we just removed that above). This can be done via the following transaction
+As the owner of the `Identity NFT`, the group in the membership role has full control over the UTxO that holds it. This means that they can do anything with it, which includes the removal and/or insertion of entries in the delegation role list. To demonstrate this, we will insert child 4 back into the list of delegates (since we just removed that above). This can be done via the following transaction
 ```bash
 cardano-cli conway transaction build --testnet-magic 42 \
  --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
@@ -425,7 +425,7 @@ cardano-cli conway transaction build --testnet-magic 42 \
  --change-address $(cat orchestrator.addr) \
  --out-file tx.raw
 ```
-which can be partialy witnessed by the orchestrator, child 1 and 2 via
+which can be partially witnessed by the orchestrator, child 1 and 2 via
 ```bash
 cardano-cli transaction witness \
   --tx-body-file tx.raw \
@@ -455,14 +455,14 @@ If we now take a look at the datum of the UTxO where the `Identity NFT` resides,
 ```bash
 cardano-cli query utxo --testnet-magic 42 --address $(cat coldLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum != null) | .value.inlineDatum.fields[] | .. | .bytes? | select(. == "fc6a114db76d31de585793749dcd6ad2d6c02a52ce9226820656bedd")'
 ```
-we see that the `jq` filter can find the key of child 4 in the datum again, it has been added succesfully.
+We see that the `jq` filter can find the key of child 4 in the datum again, it has been added successfully.
 
 ## Resign as vote role
-Similar to the delegetee role, the voter role can also unilateral resign their position in the list. In the following example we will resign child 7, to verify that this public key is still in the list of the delegation role we can use
+Similar to the delegate role, the voter role can also unilateral resign their position in the list. In the following example, we will resign child 7, to verify that this public key is still in the list of the delegation role, we can use
 ```bash
 cardano-cli query utxo --testnet-magic 42 --address $(cat hotLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum.list != null) | .value.inlineDatum.list[].fields[] | .bytes? | select(. == "fb5e0be4801aea73135efe43f4a3a6d08147af523112986dd5e7d13b")'
 ```
-The resign transaction for this child is given by this,
+The resignation transaction for this child is given by this,
 ```bash
 cardano-cli conway transaction build --testnet-magic 42 \
  --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
@@ -506,10 +506,10 @@ Checking if the public key hash of child 7 is in the datum via
 ```bash
 cardano-cli query utxo --testnet-magic 42 --address $(cat hotLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum.list != null) | .value.inlineDatum.list[].fields[] | .bytes? | select(. == "fb5e0be4801aea73135efe43f4a3a6d08147af523112986dd5e7d13b")'
 ```
-shows that it has been removed from the list.
+Shows that it has been removed from the list.
 
 ## Insert or remove as delegation role
-As the owner of the `Vote NFT`, the group in the delegatee role have full control over the UTxO that holds it. This means that they can do anything with it, which includes the removal and/or insertion of entries in the vote role list. To demonstrate this, we will insert child 7 back in the list of votees (since we just removed that above). This can be done via the following transaction
+As the owner of the `Vote NFT`, the group in the delegate role has full control over the UTxO that holds it. This means that they can do anything with it, which includes the removal and/or insertion of entries in the vote role list. To demonstrate this, we will insert child 7 back into the list of votes (since we just removed that above). This can be done via the following transaction
 ```bash
 cardano-cli conway transaction build --testnet-magic 42 \
  --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
@@ -536,16 +536,16 @@ cardano-cli transaction sign --testnet-magic 42 \
  --out-file tx.signed
 cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
 ```
-Once again we can check if this public key hash of child 7 is present in the datum via
+Once again, we can check if this public key hash of child 7 is present in the datum via
 ```bash
 cardano-cli query utxo --testnet-magic 42 --address $(cat hotLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum.list != null) | .value.inlineDatum.list[].fields[] | .bytes? | select(. == "fb5e0be4801aea73135efe43f4a3a6d08147af523112986dd5e7d13b")'
 ```
 ## Resign cold CC credential
-Besides authorizing a hot credential, the cold credential can also witness a resign certificate, this deactivates the hardcoded CC credential. This action can not be reverted, so use it wisely. The only way a cold credential can reenter the list of CC credentials is via a governance action, on which the Dreps and SPO's must vote. To resign the cold script credential you can create a resign certificate via,
+Besides authorizing a hot credential, the cold credential can also witness a resignation certificate, this deactivates the hard-coded CC credential. This action can not be reverted, so use it wisely. The only way a cold credential can reenter the list of CC credentials is via a governance action, on which the Dreps and SPO's must vote. To resign the cold script credential, you can create a resignation certificate via,
 ```bash
 cardano-cli conway governance committee create-cold-key-resignation-certificate --cold-script-hash $(cardano-cli transaction policyid --script-file ../../assets/V3/coldCredentialScript.plutus) --out-file resignColdCredential.cert
 ```
-To witness this certificate we use the following build command,
+To witness this certificate, we use the following build command,
 ```bash
 cardano-cli conway transaction build --testnet-magic 42 \
  --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
@@ -588,7 +588,7 @@ cardano-cli transaction witness \
   --testnet-magic 42 \
   --out-file txPartialOrchestrator.witness
 ```
-The partial witnesses can the be assemled and submited to the chain via
+The partial witnesses can then be assembled and submitted to the chain via
 ```
 cardano-cli transaction assemble \
   --tx-body-file tx.raw \
@@ -622,4 +622,4 @@ gives something like
     "threshold": 0
 }
 ```
-As you can see, the hardcoded cold script credential resigned. This means that no new hot credential can be appointed again.
+As you can see, the hard-coded cold script credential resigned. This means that no new hot credential can be appointed again.
