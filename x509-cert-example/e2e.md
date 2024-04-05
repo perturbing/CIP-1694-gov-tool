@@ -90,7 +90,7 @@ This command shows our hard-coded cold committee member as follows.
 }
 ```
 
-Note that, thought this now an active CC member, the `Identity NFT` is not yet locked. Also, in case you need to specify the node socket path, this is located in `/local-testnet/example/node-spo1/node.sock`.
+> **Note:** In case you need to specify the node socket path, this is located in `/local-testnet/example/node-spo1/node.sock`.
 
 You can use `Ctrl + C` to forcefully terminate the scripts that run the nodes. If you want to respin the network again, you can use the `purge-local-testnet` command, this will delete the blockchain (after which you can deploy again).
 
@@ -188,31 +188,45 @@ cardano-cli conway transaction build --testnet-magic 42 \
  --tx-out-inline-datum-file ../../assets/datums/initColdLockScriptDatum.json \
  --required-signer-hash $(cat ../CA/children/child-4/child-4.keyhash) \
  --required-signer-hash $(cat ../CA/children/child-5/child-5.keyhash) \
- --required-signer-hash $(cat ../CA/children/child-6/child-6.keyhash) \
  --certificate-file cc-hot-auth.cert \
  --certificate-script-file ../../assets/V3/coldCredentialScript.plutus \
  --certificate-redeemer-value {} \
  --change-address $(cat orchestrator.addr) \
  --out-file tx.raw
 ```
-Which can be signed and sent via
+Which can be signed and sent quickly via
 ```bash
 cardano-cli transaction sign --testnet-magic 42 \
  --signing-key-file orchestrator.skey \
  --signing-key-file ../CA/children/child-4/child-4.skey \
  --signing-key-file ../CA/children/child-5/child-5.skey \
- --signing-key-file ../CA/children/child-6/child-6.skey \
  --tx-body-file tx.raw \
  --out-file tx.signed
 cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
 ```
-Note that we signed this transaction with 3 out of 3 keys in the Membership role, this could also be done via just two. Alternatively, this transaction can be partly signed separately by each party via the command `cardano-cli transaction witness` command
+Alternatively, this transaction can be partly signed separately by each party via the command `cardano-cli transaction witness` command
 ```bash
 cardano-cli transaction witness \
   --tx-body-file tx.raw \
-  --signing-key-file ../CA/children/child-X/child-X.skey \
+  --signing-key-file ../CA/children/child-4/child-4.skey \
   --testnet-magic 42 \
-  --out-file txPartialChildX.witness
+  --out-file txPartialChild4.witness
+```
+and for child 5
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-5/child-5.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild5.witness
+```
+lastly for the orchestrator
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file orchestrator.skey \
+  --testnet-magic 42 \
+  --out-file txPartialOrchestrator.witness
 ```
 and aggregated via
 ```bash
@@ -221,8 +235,8 @@ cardano-cli transaction assemble \
   --witness-file txPartialOrchestrator.witness \
   --witness-file txPartialChild4.witness \
   --witness-file txPartialChild5.witness \
-  --witness-file txPartialChild6.witness \
   --out-file tx.signed
+cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
 ```
 If we now query the committee state again, we see that the hot credential is authorized and given by the `hotCredentialScript.plutus` (Cert-2 in the diagram) script hash
 ```bash
@@ -341,8 +355,271 @@ If we now do
 cardano-cli conway query gov-state --testnet-magic 42 | jq -r '.proposals'
 ```
 We see that the hot credential, we authorized above, voted yes on the proposal.
-## Resign membership role
+## Resign as delegation role
+A key that is assigned the delegation role, can unilateral resign their position in the list by creating a resign transaction. In the following example we will resign child 4, to verify that this public key is still in the list of the delegation role we can use
+```bash
+cardano-cli query utxo --testnet-magic 42 --address $(cat coldLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum != null) | .value.inlineDatum.fields[] | .. | .bytes? | select(. == "fc6a114db76d31de585793749dcd6ad2d6c02a52ce9226820656bedd")'
+```
+The resign transaction for this child is given by this,
+```bash 
+cardano-cli conway transaction build --testnet-magic 42 \
+ --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-collateral "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in "$(cardano-cli query utxo --address "$(cat coldLockScript.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-script-file ../../assets/V3/coldLockScript.plutus \
+ --tx-in-inline-datum-present \
+ --tx-in-redeemer-file ../../assets/redeemers/resignMemberChild4Redeemer.json \
+ --tx-out $(cat coldLockScript.addr)+5000000+"1 $(cat coldAlwaysTrueMint.pol).4964656e74697479204e4654" \
+ --tx-out-inline-datum-file ../../assets/datums/resignMemberChild4NewDatum.json \
+ --required-signer-hash $(cat ../CA/children/child-4/child-4.keyhash) \
+ --change-address $(cat orchestrator.addr) \
+ --out-file tx.raw
+```
+which can be partialy witnessed by the orchestrator and child-4 via
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file orchestrator.skey \
+  --testnet-magic 42 \
+  --out-file txPartialOrchestrator.witness
+```
+and
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-4/child-4.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild4.witness
+```
+And assembled via
+```bash
+cardano-cli transaction assemble \
+  --tx-body-file tx.raw \
+  --witness-file txPartialOrchestrator.witness \
+  --witness-file txPartialChild4.witness \
+  --out-file tx.signed
+cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
+```
+If we now take a look at the datum of the UTxO where the `Identity NFT` resides,
+```bash
+cardano-cli query utxo --testnet-magic 42 --address $(cat coldLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum != null) | .value.inlineDatum.fields[] | .. | .bytes? | select(. == "fc6a114db76d31de585793749dcd6ad2d6c02a52ce9226820656bedd")'
+```
+we see that the `jq` filter cannot find the key of child 4 in the datum, it has been removed.
 
+> **Note:** The above transaction is not completly "unilateral", as the orchesrator needed to sign the transaction. In this example this is just a practicality, the child that resigned, could have funded the transaction on its own.
 
+## Insert or remove as membership role
+As the owner of the `Identity NFT`, the group in the membership role have full control over the UTxO that holds it. This means that they can do anything with it, which includes the removal and/or insertion of entries in the delegation role list. To demonstrate this, we will insert child 4 back in the list of delegetees (since we just removed that above). This can be done via the following transaction
+```bash
+cardano-cli conway transaction build --testnet-magic 42 \
+ --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-collateral "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in "$(cardano-cli query utxo --address "$(cat coldLockScript.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-script-file ../../assets/V3/coldLockScript.plutus \
+ --tx-in-inline-datum-present \
+ --tx-in-redeemer-file ../../assets/redeemers/recoverColdRedeemer.json \
+ --tx-out $(cat coldLockScript.addr)+5000000+"1 $(cat coldAlwaysTrueMint.pol).4964656e74697479204e4654" \
+ --tx-out-inline-datum-file ../../assets/datums/initColdLockScriptDatum.json \
+ --required-signer-hash $(cat ../CA/children/child-1/child-1.keyhash) \
+ --required-signer-hash $(cat ../CA/children/child-2/child-2.keyhash) \
+ --change-address $(cat orchestrator.addr) \
+ --out-file tx.raw
+```
+which can be partialy witnessed by the orchestrator, child 1 and 2 via
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file orchestrator.skey \
+  --testnet-magic 42 \
+  --out-file txPartialOrchestrator.witness
+```
+and
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-1/child-1.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild1.witness
+```
+And assembled via
+```bash
+cardano-cli transaction assemble \
+  --tx-body-file tx.raw \
+  --witness-file txPartialOrchestrator.witness \
+  --witness-file txPartialChild1.witness \
+  --witness-file txPartialChild2.witness \
+  --out-file tx.signed
+cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
+```
+If we now take a look at the datum of the UTxO where the `Identity NFT` resides,
+```bash
+cardano-cli query utxo --testnet-magic 42 --address $(cat coldLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum != null) | .value.inlineDatum.fields[] | .. | .bytes? | select(. == "fc6a114db76d31de585793749dcd6ad2d6c02a52ce9226820656bedd")'
+```
+we see that the `jq` filter can find the key of child 4 in the datum again, it has been added succesfully.
 
+## Resign as vote role
+Similar to the delegetee role, the voter role can also unilateral resign their position in the list. In the following example we will resign child 7, to verify that this public key is still in the list of the delegation role we can use
+```bash
+cardano-cli query utxo --testnet-magic 42 --address $(cat hotLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum.list != null) | .value.inlineDatum.list[].fields[] | .bytes? | select(. == "fb5e0be4801aea73135efe43f4a3a6d08147af523112986dd5e7d13b")'
+```
+The resign transaction for this child is given by this,
+```bash
+cardano-cli conway transaction build --testnet-magic 42 \
+ --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-collateral "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in "$(cardano-cli query utxo --address "$(cat hotLockScript.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-script-file ../../assets/V3/hotLockScript.plutus \
+ --tx-in-inline-datum-present \
+ --tx-in-redeemer-file ../../assets/redeemers/resignMemberChild7Redeemer.json \
+ --tx-out $(cat hotLockScript.addr)+5000000+"1 $(cat hotAlwaysTrueMint.pol).566f7465204e4654" \
+ --tx-out-inline-datum-file ../../assets/datums/resignMemberChild7NewDatum.json \
+ --required-signer-hash $(cat ../CA/children/child-7/child-7.keyhash) \
+ --change-address $(cat orchestrator.addr) \
+ --out-file tx.raw
+```
+which can be signed via
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file orchestrator.skey \
+  --testnet-magic 42 \
+  --out-file txPartialOrchestrator.witness
+```
+and
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-7/child-7.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild7.witness
+```
+Combining it and sending it to the chain can be done via
+```bash
+cardano-cli transaction assemble \
+  --tx-body-file tx.raw \
+  --witness-file txPartialOrchestrator.witness \
+  --witness-file txPartialChild7.witness \
+  --out-file tx.signed
+cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
+```
+Checking if the public key hash of child 7 is in the datum via
+```bash
+cardano-cli query utxo --testnet-magic 42 --address $(cat hotLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum.list != null) | .value.inlineDatum.list[].fields[] | .bytes? | select(. == "fb5e0be4801aea73135efe43f4a3a6d08147af523112986dd5e7d13b")'
+```
+shows that it has been removed from the list.
 
+## Insert or remove as delegation role
+As the owner of the `Vote NFT`, the group in the delegatee role have full control over the UTxO that holds it. This means that they can do anything with it, which includes the removal and/or insertion of entries in the vote role list. To demonstrate this, we will insert child 7 back in the list of votees (since we just removed that above). This can be done via the following transaction
+```bash
+cardano-cli conway transaction build --testnet-magic 42 \
+ --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-collateral "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in "$(cardano-cli query utxo --address "$(cat hotLockScript.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-script-file ../../assets/V3/hotLockScript.plutus \
+ --tx-in-inline-datum-present \
+ --tx-in-redeemer-file ../../assets/redeemers/recoverHotRedeemer.json \
+ --read-only-tx-in-reference "$(cardano-cli query utxo --address "$(cat coldLockScript.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-out $(cat hotLockScript.addr)+5000000+"1 $(cat hotAlwaysTrueMint.pol).566f7465204e4654" \
+ --tx-out-inline-datum-file ../../assets/datums/initHotLockScriptDatum.json \
+ --required-signer-hash $(cat ../CA/children/child-4/child-4.keyhash) \
+ --required-signer-hash $(cat ../CA/children/child-5/child-5.keyhash) \
+ --change-address $(cat orchestrator.addr) \
+ --out-file tx.raw
+```
+and sign it via
+```bash
+cardano-cli transaction sign --testnet-magic 42 \
+ --signing-key-file orchestrator.skey \
+ --signing-key-file ../CA/children/child-4/child-4.skey \
+ --signing-key-file ../CA/children/child-5/child-5.skey \
+ --tx-body-file tx.raw \
+ --out-file tx.signed
+cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
+```
+Once again we can check if this public key hash of child 7 is present in the datum via
+```bash
+cardano-cli query utxo --testnet-magic 42 --address $(cat hotLockScript.addr) --output-json | jq 'to_entries[] | select(.value.inlineDatum.list != null) | .value.inlineDatum.list[].fields[] | .bytes? | select(. == "fb5e0be4801aea73135efe43f4a3a6d08147af523112986dd5e7d13b")'
+```
+## Resign cold CC credential
+Besides authorizing a hot credential, the cold credential can also witness a resign certificate, this deactivates the hardcoded CC credential. This action can not be reverted, so use it wisely. The only way a cold credential can reenter the list of CC credentials is via a governance action, on which the Dreps and SPO's must vote. To resign the cold script credential you can create a resign certificate via,
+```bash
+cardano-cli conway governance committee create-cold-key-resignation-certificate --cold-script-hash $(cardano-cli transaction policyid --script-file ../../assets/V3/coldCredentialScript.plutus) --out-file resignColdCredential.cert
+```
+To witness this certificate we use the following build command,
+```bash
+cardano-cli conway transaction build --testnet-magic 42 \
+ --tx-in "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-collateral "$(cardano-cli query utxo --address "$(cat orchestrator.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in "$(cardano-cli query utxo --address "$(cat coldLockScript.addr)" --testnet-magic 42 --out-file /dev/stdout | jq -r 'keys[0]')" \
+ --tx-in-script-file ../../assets/V3/coldLockScript.plutus \
+ --tx-in-inline-datum-present \
+ --tx-in-redeemer-file ../../assets/redeemers/recoverColdRedeemer.json \
+ --tx-out $(cat coldLockScript.addr)+5000000+"1 $(cat coldAlwaysTrueMint.pol).4964656e74697479204e4654" \
+ --tx-out-inline-datum-file ../../assets/datums/initColdLockScriptDatum.json \
+ --required-signer-hash $(cat ../CA/children/child-1/child-1.keyhash) \
+ --required-signer-hash $(cat ../CA/children/child-2/child-2.keyhash) \
+ --certificate-file resignColdCredential.cert \
+ --certificate-script-file ../../assets/V3/coldCredentialScript.plutus \
+ --certificate-redeemer-value {} \
+ --change-address $(cat orchestrator.addr) \
+ --out-file tx.raw
+```
+This can be signed by the majority of the entries in the membership role via,
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-1/child-1.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild1.witness
+```
+and
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file ../CA/children/child-2/child-2.skey \
+  --testnet-magic 42 \
+  --out-file txPartialChild2.witness
+```
+The orchestrator can then also witness the transaction,
+```bash
+cardano-cli transaction witness \
+  --tx-body-file tx.raw \
+  --signing-key-file orchestrator.skey \
+  --testnet-magic 42 \
+  --out-file txPartialOrchestrator.witness
+```
+The partial witnesses can the be assemled and submited to the chain via
+```
+cardano-cli transaction assemble \
+  --tx-body-file tx.raw \
+  --witness-file txPartialOrchestrator.witness \
+  --witness-file txPartialChild1.witness \
+  --witness-file txPartialChild2.witness \
+  --out-file tx.signed
+cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
+```
+A query of the latest CC committee state via
+```bash
+cardano-cli conway query committee-state --testnet-magic 42
+```
+gives something like
+```bash
+{
+    "committee": {
+        "scriptHash-XXXXXXXXX": {
+            "expiration": 50000,
+            "hotCredsAuthStatus": {
+                "contents": null,
+                "tag": "MemberResigned"
+            },
+            "nextEpochChange": {
+                "tag": "NoChangeExpected"
+            },
+            "status": "Active"
+        }
+    },
+    "epoch": 85,
+    "threshold": 0
+}
+```
+As you can see, the hardcoded cold script credential resigned. This means that no new hot credential can be appointed again.

@@ -177,7 +177,7 @@ hotLockScript coldNFT dtm red ctx = case scriptContextPurpose ctx of
                         NoOutputDatum -> False
                         OutputDatumHash _ -> False
                         OutputDatum inlineDatum -> case (fromBuiltinData . getDatum) inlineDatum of
-                            Just ccDtm -> checkMultiSig (recoveryX509s ccDtm)
+                            Just ccDtm -> checkMultiSig (delegateX509s ccDtm)
                             Nothing -> False
                     Nothing     -> False
         where

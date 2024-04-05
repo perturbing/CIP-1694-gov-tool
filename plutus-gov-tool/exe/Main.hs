@@ -111,6 +111,12 @@ main = do
   writeFile "./assets/redeemers/recoverColdRedeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON recoverColdRedeemer)
   -- the vote redeemer needed witness the Vote NFT from lock script
   writeFile "./assets/redeemers/voteRedeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON voteRedeemer)
+  -- the resign redeemer needed to remove child 7 from the old datum
+  writeFile "./assets/datums/resignMemberChild7NewDatum.json" (BS8.unpack . prettyPrintJSON $ dataToJSON resignMemberChild7NewDatum)
+  -- the resign redeemer needed to remove child 7 from the old datum
+  writeFile "./assets/redeemers/resignMemberChild7Redeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON resignMemberChild7Redeemer)
+  -- the recover redeemer needed to recover the Vote NFT from hot lock script
+  writeFile "./assets/redeemers/recoverHotRedeemer.json" (BS8.unpack . prettyPrintJSON $ dataToJSON recoverHotRedeemer)
   putStrLn "done!"
 
 initColdLockScriptDatum :: ColdLockScriptDatum
@@ -130,6 +136,9 @@ resignMemberChild4NewDatum = ColdLockScriptDatum {
     delegateX509s = [child5Cert, child6Cert]
 }
 
+resignMemberChild7NewDatum :: [X509]
+resignMemberChild7NewDatum = [child8Cert, child9Cert]
+
 resignMemberChild4Redeemer :: ColdLockScriptRedeemer
 resignMemberChild4Redeemer = ColdScripts.Resign child4Cert
 
@@ -137,10 +146,16 @@ recoverColdRedeemer :: ColdLockScriptRedeemer
 recoverColdRedeemer = ColdScripts.Recover
 
 delegateRedeemer :: ColdLockScriptRedeemer
-delegateRedeemer = Delegate
+delegateRedeemer = ColdScripts.Delegate
 
 voteRedeemer :: HotLockScriptRedeemer
-voteRedeemer = Vote
+voteRedeemer = HotScripts.Vote
+
+resignMemberChild7Redeemer :: HotLockScriptRedeemer
+resignMemberChild7Redeemer = HotScripts.Resign child7Cert
+
+recoverHotRedeemer :: HotLockScriptRedeemer
+recoverHotRedeemer = HotScripts.Recover
 
 -- helper function to create a X509 certificate for testing purposes
 -- the first argument is 28 bytes long and the second is 32 bytes long
