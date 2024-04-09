@@ -1,4 +1,4 @@
-# OpenSSl and Cardano
+# OpenSSL and Cardano
 In this document, we describe how to generate keys via the CLI and issue certificates using OpenSSL to create a basic X509 CA and X509 children. In short, X509 binds an identity to a public key using a digital signature.
 
 # Generating keys and converting them to a PEM file.
