@@ -200,12 +200,12 @@ hotLockScriptCode = $$(compile [|| wrappedHotLockScript ||])
 -- testing purposes
 
 {-# INLINABLE hotAlwaysTrueMint #-}
-hotAlwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
-hotAlwaysTrueMint _ _ = traceIfFalse "This also always returns true" True
+hotAlwaysTrueMint :: PubKeyHash -> BuiltinData -> ScriptContext -> Bool
+hotAlwaysTrueMint pkh _ ctx = txSignedBy (scriptContextTxInfo ctx) pkh
 
 {-# INLINABLE wrappedHotAlwaysTrueMint #-}
-wrappedHotAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
-wrappedHotAlwaysTrueMint = wrapTwoArgs hotAlwaysTrueMint
+wrappedHotAlwaysTrueMint :: BuiltinData -> BuiltinData -> BuiltinData -> ()
+wrappedHotAlwaysTrueMint = wrapThreeArgs hotAlwaysTrueMint
 
-hotAlwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
+hotAlwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
 hotAlwaysTrueMintCode = $$(compile [|| wrappedHotAlwaysTrueMint ||])

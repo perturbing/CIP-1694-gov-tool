@@ -62,11 +62,20 @@ writeCodeToFile version filePath = case version of
 
 ---------------------------------------
 
+pkh :: PlutusV3.PubKeyHash
+pkh = "431ff8049ad5ee5f6c30bae16f28e9109355fe7de42432bfb9c44282"
+
+-- coldAlwaysTrueMintCodeApplied :: CompiledCode (BuiltinData -> BuiltinData -> ())
+coldAlwaysTrueMintCodeApplied = coldAlwaysTrueMintCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData pkh)
+
+-- hotAlwaysTrueMintCodeApplied :: CompiledCode (BuiltinData -> BuiltinData -> ())
+hotAlwaysTrueMintCodeApplied = hotAlwaysTrueMintCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData pkh)
+
 scriptHashColdAlwaysTrueMint :: ScriptHash
-scriptHashColdAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ coldAlwaysTrueMintCode
+scriptHashColdAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ coldAlwaysTrueMintCodeApplied
 
 scriptHashHotAlwaysTrueMint :: ScriptHash
-scriptHashHotAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ hotAlwaysTrueMintCode
+scriptHashHotAlwaysTrueMint = hashScript . PlutusScript PlutusScriptV3 . PlutusScriptSerialised . PlutusV3.serialiseCompiledCode $ hotAlwaysTrueMintCodeApplied
 
 coldAlwaysTrueCurrencySymbol :: PlutusV3.CurrencySymbol
 coldAlwaysTrueCurrencySymbol = PlutusV3.CurrencySymbol . PlutusV3.toBuiltin . serialiseToRawBytes $ scriptHashColdAlwaysTrueMint
@@ -82,8 +91,8 @@ printDataToJSON = putStrLn . BS8.unpack . prettyPrintJSON . dataToJSON
 
 main :: IO ()
 main = do
-  writeCodeToFile PlutusScriptV3 "./assets/V3/coldAlwaysTrueMint.plutus" coldAlwaysTrueMintCode
-  writeCodeToFile PlutusScriptV3 "./assets/V3/hotAlwaysTrueMint.plutus" hotAlwaysTrueMintCode
+  writeCodeToFile PlutusScriptV3 "./assets/V3/coldAlwaysTrueMint.plutus" coldAlwaysTrueMintCodeApplied
+  writeCodeToFile PlutusScriptV3 "./assets/V3/hotAlwaysTrueMint.plutus" hotAlwaysTrueMintCodeApplied
   -- setting up the cold credential and locking scripts 
   let coldCredentialScriptCodeApplied = coldCredentialScriptCode `unsafeApplyCode` liftCodeDef (PlutusV3.toBuiltinData coldAlwaysTrueCurrencySymbol)
   putStrLn $ "Applied currency symbol " ++ show coldAlwaysTrueCurrencySymbol ++ " to coldCredentialScriptCode"

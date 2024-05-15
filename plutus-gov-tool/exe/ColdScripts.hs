@@ -207,12 +207,14 @@ coldLockScriptCode = $$(compile [|| wrappedColdLockScript ||])
 -- testing purposes
 
 {-# INLINABLE coldAlwaysTrueMint #-}
-coldAlwaysTrueMint :: BuiltinData -> ScriptContext -> Bool
-coldAlwaysTrueMint _ _ = True
+coldAlwaysTrueMint :: PubKeyHash -> BuiltinData -> ScriptContext -> Bool
+coldAlwaysTrueMint pkh _ ctx = case scriptContextPurpose ctx of
+    Minting _ -> txSignedBy (scriptContextTxInfo ctx) pkh
+    _         -> False
 
 {-# INLINABLE wrappedColdAlwaysTrueMint #-}
-wrappedColdAlwaysTrueMint :: BuiltinData -> BuiltinData -> ()
-wrappedColdAlwaysTrueMint = wrapTwoArgs coldAlwaysTrueMint
+wrappedColdAlwaysTrueMint :: BuiltinData -> BuiltinData -> BuiltinData -> ()
+wrappedColdAlwaysTrueMint = wrapThreeArgs coldAlwaysTrueMint
 
-coldAlwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> ())
+coldAlwaysTrueMintCode :: CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> ())
 coldAlwaysTrueMintCode = $$(compile [|| wrappedColdAlwaysTrueMint ||])

@@ -134,11 +134,12 @@ cardano-cli conway transaction build --testnet-magic 42 \
  --change-address $(cat orchestrator.addr) \
  --mint-script-file ../../assets/V3/coldAlwaysTrueMint.plutus --mint-redeemer-value {} \
  --mint-script-file ../../assets/V3/hotAlwaysTrueMint.plutus --mint-redeemer-value {} \
+ --required-signer-hash $(cat ../../keys/nft-key.hash) \
  --out-file tx.raw
 ```
 which the orchestrator can sign and submit via
 ```bash
-cardano-cli transaction sign --testnet-magic 42 --signing-key-file orchestrator.skey --tx-body-file tx.raw --out-file tx.signed
+cardano-cli transaction sign --testnet-magic 42 --signing-key-file orchestrator.skey --signing-key-file ../../keys/nft-key.skey --tx-body-file tx.raw --out-file tx.signed
 cardano-cli transaction submit --testnet-magic 42 --tx-file tx.signed
 ```
 If we query the blockchain again, we can view the result via
